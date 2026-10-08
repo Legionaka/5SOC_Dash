@@ -11,11 +11,15 @@ export default async function Layout({
   if (!session?.user) redirect('/login');
 
   return (
-    <div className="flex h-screen flex-col md:flex-row md:overflow-hidden">
-      <div className="w-full flex-none md:w-64">
-        <SideNav role={session.user.role} />
-      </div>
-      <div className="grow p-6 md:overflow-y-auto md:p-12">{children}</div>
+    <div className="flex min-h-screen flex-col bg-slate-50 md:h-screen md:flex-row md:overflow-hidden">
+    <SideNav
+      role={session.user.role}
+      name={session.user.name}
+      email={session.user.email}
+    />
+    <div className="min-w-0 grow overflow-y-auto p-6 md:p-10 lg:p-12">
+      {children}
+    </div>
     </div>
   );
 }

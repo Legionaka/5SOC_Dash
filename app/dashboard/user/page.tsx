@@ -13,13 +13,15 @@ export default async function PatientDashboardPage() {
   }
 
   return (
-    <main>
-      <h1 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>
-        Patient Portal
-      </h1>
-      <p className="text-sm text-gray-600">
-        Welcome, {session.user.name ?? 'Patient'}.
-      </p>
+    <main className="mx-auto w-full max-w-5xl">
+      <header className="border-b border-slate-200 pb-6">
+        <p className="text-sm font-medium text-teal-700">Patient Portal</p>
+        <h1
+          className={`${lusitana.className} mt-2 text-2xl font-bold text-slate-900 md:text-3xl`}
+        >
+          Welcome, {session.user.name ?? 'Patient'}
+        </h1>
+      </header>
     </main>
   );
 }

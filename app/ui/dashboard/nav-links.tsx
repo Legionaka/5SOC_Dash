@@ -10,7 +10,13 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import type { UserRole } from '@/app/lib/definitions';
 
-export default function NavLinks({ role }: { role?: UserRole }) {
+export default function NavLinks({
+  role,
+  collapsed = false,
+}: {
+  role?: UserRole;
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
   const links =
     role === 'admin'
@@ -66,14 +72,21 @@ export default function NavLinks({ role }: { role?: UserRole }) {
             key={link.name}
             href={link.href}
             className={clsx(
-              'flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3',
+              'group flex h-11 grow items-center justify-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-600 transition hover:bg-teal-50 hover:text-teal-800 md:flex-none md:justify-start',
               {
-                'bg-sky-100 text-blue-600': pathname === link.href,
+                'bg-teal-50 font-semibold text-teal-800 ring-1 ring-inset ring-teal-100':
+                  pathname === link.href,
+                'md:justify-center md:px-0': collapsed,
               },
             )}
+            aria-label={collapsed ? link.name : undefined}
+            title={collapsed ? link.name : undefined}
+            aria-current={pathname === link.href ? 'page' : undefined}
           >
-            <LinkIcon className="w-6" />
-            <p className="hidden md:block">{link.name}</p>
+            <LinkIcon className="h-5 w-5 shrink-0" />
+            <span className={collapsed ? 'md:hidden' : undefined}>
+              {link.name}
+            </span>
           </Link>
         );
       })}

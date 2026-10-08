@@ -1,34 +1,132 @@
+'use client';
+
 import Link from 'next/link';
 import NavLinks from '@/app/ui/dashboard/nav-links';
 import AcmeLogo from '@/app/ui/acme-logo';
-import { PowerIcon } from '@heroicons/react/24/outline';
-import { signOut } from '@/auth';
+import {
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+  PowerIcon,
+} from '@heroicons/react/24/outline';
 import type { UserRole } from '@/app/lib/definitions';
+import { signOutUser } from '@/app/lib/auth-actions';
+import { useEffect, useState } from 'react';
 
-export default function SideNav({ role }: { role?: UserRole }) {
+const SIDEBAR_STORAGE_KEY = 'medi-clinic-sidebar-collapsed';
+
+export default function SideNav({
+  role,
+  name,
+  email,
+}: {
+  role?: UserRole;
+  name?: string | null;
+  email?: string | null;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [preferenceLoaded, setPreferenceLoaded] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(
+      window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true',
+    );
+    setPreferenceLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (preferenceLoaded) {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
+    }
+  }, [collapsed, preferenceLoaded]);
+
+  const displayName = name?.trim() || 'Clinic user';
+  const initials = displayName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+
   return (
-    <div className="flex h-full flex-col px-3 py-4 md:px-2">
-      <Link
-        className="mb-2 flex h-20 items-end justify-start rounded-md bg-blue-600 p-4 md:h-40"
-        href="/"
+    <aside
+      className={`flex w-full shrink-0 flex-col border-b border-slate-200 bg-white px-4 py-4 transition-[width] duration-200 md:h-screen md:border-b-0 md:border-r md:px-4 md:py-5 ${
+        collapsed ? 'md:w-[5.5rem] md:px-2' : 'md:w-64'
+      }`}
+      aria-label="Dashboard sidebar"
+    >
+      <div
+        className={`flex items-center justify-between gap-2 ${
+          collapsed ? 'md:gap-1' : ''
+        }`}
       >
-        <AcmeLogo className="h-24 w-24 object-contain md:h-36 md:w-36" />
-      </Link>
-      <div className="flex grow flex-row justify-between space-x-2 md:flex-col md:space-x-0 md:space-y-2">
-        <NavLinks role={role} />
-        <div className="hidden h-auto w-full grow rounded-md bg-gray-50 md:block"></div>
-        <form
-          action={async () => {
-            'use server';
-            await signOut({ redirectTo: '/' });
-          }}
+        <Link
+          className="flex min-w-0 items-center gap-3"
+          href="/"
+          aria-label="Medi-Clinic home"
         >
-          <button className="flex h-[48px] w-full grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3">
-            <PowerIcon className="w-6" />
-            <div className="hidden md:block">Sign Out</div>
-          </button>
-        </form>
+          <AcmeLogo
+            className={`h-11 w-11 shrink-0 object-contain ${
+              collapsed ? 'md:h-8 md:w-8' : ''
+            }`}
+          />
+          <span
+            className={`truncate text-sm font-bold tracking-tight text-slate-900 ${
+              collapsed ? 'md:hidden' : ''
+            }`}
+          >
+            Medi-Clinic
+          </span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setCollapsed((current) => !current)}
+          className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-teal-50 hover:text-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 md:inline-flex"
+          aria-label={collapsed ? 'Expand sidebar' : 'Minimize sidebar'}
+          aria-expanded={!collapsed}
+          title={collapsed ? 'Expand sidebar' : 'Minimize sidebar'}
+        >
+          {collapsed ? (
+            <ChevronDoubleRightIcon className="h-5 w-5" />
+          ) : (
+            <ChevronDoubleLeftIcon className="h-5 w-5" />
+          )}
+        </button>
       </div>
-    </div>
+
+      <div
+        className={`mt-5 flex items-center justify-end gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 ${
+          collapsed ? 'md:justify-center md:px-0' : ''
+        }`}
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-semibold text-white">
+          {initials}
+        </span>
+        <div className={`min-w-0 text-right ${collapsed ? 'md:hidden' : ''}`}>
+          <p className="truncate text-sm font-semibold text-slate-800">
+            {displayName}
+          </p>
+          {email && (
+            <p className="truncate text-xs text-slate-500">{email}</p>
+          )}
+        </div>
+      </div>
+
+      <nav className="mt-6 flex grow flex-row gap-2 overflow-x-auto md:flex-col md:overflow-visible">
+        <NavLinks role={role} collapsed={collapsed} />
+      </nav>
+
+      <form action={signOutUser} className="mt-3">
+        <button
+          className={`flex h-11 w-full items-center justify-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-600 transition hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 md:justify-start ${
+            collapsed ? 'md:justify-center md:px-0' : ''
+          }`}
+          aria-label={collapsed ? 'Sign out' : undefined}
+          title={collapsed ? 'Sign out' : undefined}
+        >
+          <PowerIcon className="h-5 w-5 shrink-0" />
+          <span className={collapsed ? 'md:hidden' : undefined}>Sign out</span>
+        </button>
+      </form>
+    </aside>
   );
 }
