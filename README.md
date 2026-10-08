@@ -5,6 +5,14 @@ This project uses Auth.js credentials authentication with roles stored on each
 column; existing users receive the `patient` role unless assigned a different
 role explicitly.
 
+## Database setup
+
+Set `POSTGRES_URL` in `.env.local`, start the app, and open `/seed` once to
+create the `users`, `customers`, `invoices`, and `revenue` tables and insert
+the sample data. Wait for the “Database seeded successfully” response before
+logging in or opening dashboard pages. The seed initializes tables in order so
+the dashboard does not query a relation before it has been created.
+
 ## Role-protected routes
 
 | Role | Dashboard entry |
