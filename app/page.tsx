@@ -1,6 +1,7 @@
 import { auth } from '@/auth';
 import { getDashboardHome } from '@/app/lib/access-control';
 import AcmeLogo from '@/app/ui/acme-logo';
+import HomeHero from '@/app/ui/home-hero';
 import { lusitana } from '@/app/ui/fonts';
 import {
   ArrowRightIcon,
@@ -32,32 +33,10 @@ export default async function Page() {
       </header>
 
       <section className="mx-auto grid min-h-[calc(100vh-88px)] w-full max-w-7xl items-center gap-12 px-6 pb-16 pt-8 md:grid-cols-2 md:px-10 md:pb-24">
-        <div className="max-w-xl">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1.5 text-sm font-semibold text-teal-800">
-            <ShieldCheckIcon className="h-4 w-4" />
-            A dedicated workspace for every role
-          </p>
-          <h1
-            className={`${lusitana.className} text-4xl font-bold leading-tight tracking-tight text-slate-950 sm:text-5xl md:text-6xl`}
-          >
-            Welcome to your
-            <span className="block text-teal-700">Medi-Clinic portal.</span>
-          </h1>
-          <p className="mt-6 max-w-lg text-lg leading-8 text-slate-600">
-            Sign in to continue to the workspace assigned to your account.
-            Access is based on your clinic role.
-          </p>
-          <Link
-            href={destination}
-            className="mt-9 inline-flex items-center gap-3 rounded-lg bg-teal-700 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:ring-offset-2"
-          >
-            {session?.user ? 'Open your workspace' : 'Sign in to continue'}
-            <ArrowRightIcon className="h-5 w-5" />
-          </Link>
-          <p className="mt-4 text-sm text-slate-500">
-            Use the account credentials provided by your clinic.
-          </p>
-        </div>
+        <HomeHero
+          destination={destination}
+          isLoggedIn={!!session?.user}
+        />
 
         <div className="relative mx-auto w-full max-w-lg">
           <div className="absolute -inset-5 rounded-[2rem] bg-gradient-to-br from-teal-100 via-cyan-50 to-sky-100" />
