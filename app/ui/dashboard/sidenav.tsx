@@ -27,16 +27,19 @@ export default function SideNav({
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
 
   useEffect(() => {
-    setCollapsed(
-      window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true',
-    );
+    try {
+      setCollapsed(window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true');
+    } catch {
+      setCollapsed(false);
+    }
     setPreferenceLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (preferenceLoaded) {
+    if (!preferenceLoaded) return;
+    try {
       window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
-    }
+    } catch {}
   }, [collapsed, preferenceLoaded]);
 
   const displayName = name?.trim() || 'Clinic user';
@@ -49,24 +52,24 @@ export default function SideNav({
 
   return (
     <aside
-      className={`flex w-full shrink-0 flex-col border-b border-slate-200 bg-white px-4 py-4 transition-[width] duration-200 md:h-screen md:border-b-0 md:border-r md:px-4 md:py-5 ${
-        collapsed ? 'md:w-[5.5rem] md:px-2' : 'md:w-64'
-      }`}
+      className={`flex w-full shrink-0 flex-col border-b border-slate-200 bg-white px-4 py-4 md:h-screen md:border-b-0 md:border-r md:py-5 ${
+        preferenceLoaded ? 'transition-[width] duration-200' : ''
+      } ${collapsed ? 'md:w-[5.5rem] md:px-2' : 'md:w-64 md:px-4'}`}
       aria-label="Dashboard sidebar"
     >
       <div
         className={`flex items-center justify-between gap-2 ${
-          collapsed ? 'md:gap-1' : ''
+          collapsed ? 'md:flex-col md:justify-center md:gap-3' : ''
         }`}
       >
         <Link
-          className="flex min-w-0 items-center gap-3"
+          className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
           href="/"
           aria-label="Medi-Clinic home"
         >
           <AcmeLogo
             className={`h-11 w-11 shrink-0 object-contain ${
-              collapsed ? 'md:h-8 md:w-8' : ''
+              collapsed ? 'md:h-9 md:w-9' : ''
             }`}
           />
           <span
@@ -80,7 +83,7 @@ export default function SideNav({
         <button
           type="button"
           onClick={() => setCollapsed((current) => !current)}
-          className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-teal-50 hover:text-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 md:inline-flex"
+          className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent text-slate-500 transition-colors hover:border-teal-700 hover:text-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 md:inline-flex"
           aria-label={collapsed ? 'Expand sidebar' : 'Minimize sidebar'}
           aria-expanded={!collapsed}
           title={collapsed ? 'Expand sidebar' : 'Minimize sidebar'}
@@ -94,14 +97,18 @@ export default function SideNav({
       </div>
 
       <div
-        className={`mt-5 flex items-center justify-end gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 ${
-          collapsed ? 'md:justify-center md:px-0' : ''
+        className={`mt-4 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 md:mt-5 ${
+          collapsed ? 'md:justify-center md:p-2' : ''
         }`}
+        title={collapsed ? displayName : undefined}
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-semibold text-white">
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-semibold text-white"
+          aria-hidden="true"
+        >
           {initials}
         </span>
-        <div className={`min-w-0 text-right ${collapsed ? 'md:hidden' : ''}`}>
+        <div className={`min-w-0 ${collapsed ? 'md:hidden' : ''}`}>
           <p className="truncate text-sm font-semibold text-slate-800">
             {displayName}
           </p>
@@ -111,14 +118,18 @@ export default function SideNav({
         </div>
       </div>
 
-      <nav className="mt-6 flex grow flex-row gap-2 overflow-x-auto md:flex-col md:overflow-visible">
+      <nav
+        aria-label="Main navigation"
+        className="mt-4 flex grow flex-row gap-2 overflow-x-auto md:mt-6 md:flex-col md:overflow-visible"
+      >
         <NavLinks role={role} collapsed={collapsed} />
       </nav>
 
-      <form action={signOutUser} className="mt-3">
+      <form action={signOutUser} className="mt-3 border-t border-slate-100 pt-3">
         <button
-          className={`flex h-11 w-full items-center justify-center gap-3 rounded-xl px-3 text-sm font-medium text-slate-600 transition hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 md:justify-start ${
-            collapsed ? 'md:justify-center md:px-0' : ''
+          type="submit"
+          className={`flex h-11 w-full items-center gap-3 rounded-xl border border-transparent px-3 text-sm font-medium text-slate-600 transition-colors hover:border-rose-300 hover:text-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 ${
+            collapsed ? 'justify-center md:px-0' : 'justify-center md:justify-start'
           }`}
           aria-label={collapsed ? 'Sign out' : undefined}
           title={collapsed ? 'Sign out' : undefined}
