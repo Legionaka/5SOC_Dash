@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import { getDashboardHome } from '@/app/lib/access-control';
+import AcmeLogo from '@/app/ui/acme-logo';
 import { lusitana } from '@/app/ui/fonts';
 import {
   ArrowRightIcon,
@@ -18,13 +19,8 @@ export default async function Page() {
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-6 md:px-10">
-        <Link href="/" className="flex items-center gap-3" aria-label="Medi-Clinic home">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-700 text-white">
-            <HeartIcon className="h-6 w-6" />
-          </span>
-          <span className={`${lusitana.className} text-2xl font-bold`}>
-            Medi-Clinic
-          </span>
+        <Link href="/" aria-label="Medi-Clinic home">
+          <AcmeLogo className="h-20 w-20 object-contain" />
         </Link>
         <Link
           href={destination}

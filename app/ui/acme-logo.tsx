@@ -1,13 +1,13 @@
-import { GlobeAltIcon } from '@heroicons/react/24/outline';
-import { lusitana } from '@/app/ui/fonts';
+import Image from 'next/image';
 
-export default function AcmeLogo() {
+export default function AcmeLogo({ className }: { className?: string }) {
   return (
-    <div
-      className={`${lusitana.className} flex flex-row items-center leading-none text-white`}
-    >
-      <GlobeAltIcon className="h-12 w-12 rotate-[15deg]" />
-      <p className="text-[44px] ">Acme</p>
-    </div>
+    <Image
+      src="/mediclinic-logo.png"
+      alt="Medi-Clinic"
+      width={320}
+      height={320}
+      className={className ?? 'h-auto w-full object-contain'}
+    />
   );
 }
