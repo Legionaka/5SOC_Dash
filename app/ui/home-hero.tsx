@@ -4,7 +4,7 @@ import { lusitana } from '@/app/ui/fonts';
 import LoginForm from '@/app/ui/login-form';
 import { ArrowRightIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 export default function HomeHero({
   destination,
@@ -14,6 +14,16 @@ export default function HomeHero({
   isLoggedIn: boolean;
 }) {
   const [showLoginForm, setShowLoginForm] = useState(false);
+
+  useEffect(() => {
+    const showLoginFormFromHeader = () => setShowLoginForm(true);
+    window.addEventListener('medi-clinic:show-login', showLoginFormFromHeader);
+    return () =>
+      window.removeEventListener(
+        'medi-clinic:show-login',
+        showLoginFormFromHeader,
+      );
+  }, []);
 
   if (isLoggedIn) {
     return (

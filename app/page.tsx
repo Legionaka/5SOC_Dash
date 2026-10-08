@@ -2,6 +2,7 @@ import { auth } from '@/auth';
 import { getDashboardHome } from '@/app/lib/access-control';
 import AcmeLogo from '@/app/ui/acme-logo';
 import HomeHero from '@/app/ui/home-hero';
+import HomeSignInButton from '@/app/ui/home-sign-in-button';
 import { lusitana } from '@/app/ui/fonts';
 import {
   ArrowRightIcon,
@@ -23,13 +24,17 @@ export default async function Page() {
         <Link href="/" aria-label="Medi-Clinic home">
           <AcmeLogo className="h-20 w-20 object-contain" />
         </Link>
-        <Link
-          href={destination}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-teal-700 hover:text-teal-800"
-        >
-          {session?.user ? 'Go to your workspace' : 'Sign in'}
-          <ArrowRightIcon className="h-4 w-4" />
-        </Link>
+        {session?.user ? (
+          <Link
+            href={destination}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-teal-700 hover:text-teal-800"
+          >
+            Go to your workspace
+            <ArrowRightIcon className="h-4 w-4" />
+          </Link>
+        ) : (
+          <HomeSignInButton />
+        )}
       </header>
 
       <section className="mx-auto grid min-h-[calc(100vh-88px)] w-full max-w-7xl items-center gap-12 px-6 pb-16 pt-8 md:grid-cols-2 md:px-10 md:pb-24">
