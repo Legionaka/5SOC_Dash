@@ -5,7 +5,7 @@ import { TEST_PATIENT_EMAIL } from '@/app/lib/access-control';
 import {
   CalendarDaysIcon,
   CreditCardIcon,
-  HeartPulseIcon,
+  HeartIcon,
   ShieldCheckIcon,
   BellAlertIcon,
   PhoneIcon,
@@ -247,7 +247,7 @@ export default async function PatientDashboardPage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
             <div className="rounded-xl bg-rose-100 p-2 text-rose-700">
-              <HeartPulseIcon className="h-5 w-5" />
+              <HeartIcon className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-slate-900">My records</h2>
@@ -256,12 +256,12 @@ export default async function PatientDashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {{
+            { [
               'Annual physical report',
               'Vaccination history',
               'Lab result: blood panel',
               'Doctor note: follow-up care plan',
-            }.map((item, index) => (
+            ].map((item, index) => (
               <div key={item} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
                 <div className="flex items-center gap-3">
                   <CheckCircleIcon className="h-5 w-5 text-emerald-600" />
