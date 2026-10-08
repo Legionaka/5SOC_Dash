@@ -1,0 +1,189 @@
+medi-clnic-sign in(uses only staff) and create user(patients log-in)
+storage buckets-patients medical records-(what is being uploaded)-creates folder containing patient files,allow customization->avatar,edit information(name,surname,date of birth,id,patient number,patient files,email,)
+supabase->storage.buckets-commands,storage.objects,sign.urls-safety
+add in proposal.md-storage updates
+patients logins then staff->overall dashboard-shows patient database,their records,handles appointments,schedules for both doctors and patient(slot ins-when patients can book an appointment,shows on staff side the queue,which doctor is available for consultations shows on patient side)
+for nextjs dashboard only user@nextmail.com must work
+once a patient makes an appointment-automatically updates queue allows changes for both sides(patient,staff) must click save and update to ensure changes are made and recognized
+(add timing animation where it configures the circle turning animation to show its loading)
+add notifications for both staff and patients
+shows which appointments are not available which staff can edit and change-recommends similar doctors or appointment recommendations to patients
+limit amount of bookings per doctor for the day
+create online wallet-handles patients bills,if refund occurs,the money is sent to wallet(patient can ask for a refund)
+patients can pay in person or online-shows if its been paid,pending or outgoing transaction 
+each appointment has a fee depending on doctor selected ,what type of consultations,etc
+appointments,doctors,consultations are drop down items on patient side
+delayed appointments are handled where patient can either claim refund or rescheduling for another day without additional fees excluding whatever fees comes after
+contact info for patients to enquire either via phone call,on website,in person
+invoices for patients is sent via email of patient
+calender-for staff allows doctors to make certain times and dates unavailable 
+doctors calenders show operating times from  clocking in to clocking out-whether doctor is available,if doctor has any  surgeries,emergencies,etc
+
+different doctors to pick from->• General Practitioners (GPs) / Family Physicians: Treat patients of all ages and manage everyday health needs, common sicknesses, and referrals.
+• Internists (Internal Medicine): Focus exclusively on adult health, chronic diseases, and internal organ systems.
+• Pediatricians: Specialize in the health and development of infants, children, and young adults.
+• Geriatricians: Focus on the health needs and medical care of older adults.
+
+Medical Specialists
+Specialists complete advanced training to diagnose and treat targeted organs or complex diseases.
+• Cardiologists: Experts on the heart and blood vessels, treating conditions like high blood pressure and heart failure.
+• Dermatologists: Treat conditions related to the skin, hair, and nails.
+• Endocrinologists: Manage hormone imbalances, metabolism, and conditions like diabetes.
+• Gastroenterologists: Treat disorders of the digestive tract, stomach, and intestines.
+• Neurologists: Treat disorders affecting the brain, spinal cord, and nervous system.
+• Oncologists: Specialize in the diagnosis and medical treatment of cancer.
+• Ophthalmologists: Medical doctors who diagnose and treat eye diseases and perform eye surgery.
+• Otolaryngologists (ENT): Treat conditions of the ear, nose, throat, head, and neck.
+• Pulmonologists: Specialize in lung and respiratory system conditions.
+• Psychiatrists: Diagnose and treat mental health disorders using therapy and medication.
+
+Surgical Specialists
+These doctors perform operations to repair injuries, remove diseased tissue, or correct physical deformities.
+• General Surgeons: Operate on a wide range of common abdominal and soft-tissue issues.
+• Orthopedic Surgeons: Specialize in bones, joints, ligaments, tendons, and sports injuries.
+• Neurosurgeons: Perform complex surgery on the brain and spine.
+• Plastic Surgeons: Reconstruct or repair skin and body structures for trauma or cosmetic reasons
+
+
+patient has predefined drop down list of what he requires from doctor-time allocations are predefined accordign to what patient selects:
+
+
+1. Routine & Preventive Care
+
+Many people visit a doctor when they are perfectly healthy to prevent future illness and maintain a baseline of wellness.
+• Annual Physicals: Routine health assessments, tracking BMI, and blood pressure monitoring.
+• Vaccinations: Receiving routine immunizations, such as annual flu shots or travel vaccines.
+• Screenings: Preventive laboratory tests for cholesterol levels, blood sugar (diabetes testing), and early cancer screenings.
+• Lifestyle Counseling: Working with a provider to set fitness, dietary, or stress-management goals.
+
+2. Acute Illnesses and Infections
+
+Sudden symptoms or short-term infections are among the most frequent drivers of unexpected doctor visits.
+• Respiratory Issues: Upper respiratory infections, severe colds, flu, sore throats, sinus infections, and bronchitis.
+• Infections: Urinary tract infections (UTIs), ear infections, and sudden stomach bugs (gastroenteritis).
+• Digestive Complaints: Acute bouts of acid reflux, severe changes in bowel movements, or abdominal pain.
+
+3. Chronic Condition Management
+
+Patients diagnosed with long-term medical issues require regular doctor visits to monitor their health, adjust prescriptions, and prevent complications.
+• Cardiovascular & Metabolic Issues: Managing high blood pressure (hypertension), high cholesterol, and type 2 diabetes.
+• Pain & Joint Disorders: Ongoing management for osteoarthritis, chronic back problems, and rheumatoid arthritis.
+• Respiratory Conditions: Long-term management of asthma and Chronic Obstructive Pulmonary Disease (COPD).
+
+4. New or Concerning Symptoms
+
+People often seek medical expertise when they experience "red flag" symptoms that require professional diagnosis to rule out serious health issues.
+• Skin Changes: New or changing moles, persistent rashes, acne, or eczema.
+• Unexplained Changes: Sudden weight loss or gain without a change in diet, or chronic fatigue/feeling tired all the time.
+• Pain: Persistent or severe headaches, migraines, or chest pain.
+
+5. Mental Health and Administrative Needs
+
+Healthcare extends beyond physical ailments to include emotional well-being and logistical healthcare navigation.
+• Mental Health Support: Seeking care plans, therapy referrals, or medication for anxiety, depression, chronic stress, or sleep disorders.
+• Specialist Referrals: Visiting a primary care doctor to secure a referral to an out-of-network specialist, like a cardiologist or neurologist.
+• Prescription Refills: Routine check-ins required to renew long-term maintenance medications.
+
+roles:admin(staff),doctors,patients(user),pharmacy(front-desk(reception),stocker,pharmacist)
+monitoring:
+
+1. Doctor’s Dashboard
+
+Doctors require a clinical view focused entirely on patient health, immediate tasks, and medical history.
+• What They Monitor:
+	• Clinical queue: Upcoming appointments, patient check-in status, and reason for the visit.
+	• Patient charts: Electronic Health Records (EHR), medical history, allergies, and active medications.
+	• Lab & test results: Pending, reviewed, and critical diagnostic reports.
+	• Task manager: Prescription renewal requests, referral approvals, and signing off on clinical notes.
+
+Data Control & Limitations
+
+• Retention (How long it is kept): Permanently or for legal minimums (usually 7–10 years after the last treatment, or until a minor turns 21), depending on local medical retention laws.
+• What can be Edited: Clinical notes and treatment plans can be edited only until the session is locked or signed off. Post-signature changes require an addendum rather than a direct edit.
+• What can be Deleted: Nothing. Doctors cannot delete medical records or history to maintain strict legal audit trails.
+• What can be Archived: Past patient cases, inactive health conditions, and resolved allergies can be archived (hidden from immediate view but retrievable).
+• Update Frequency: Real-time / Per session. The queue updates continuously as patients check in, while clinical notes are updated per session.
+
+2. Administrative & Staff Dashboard (Reception & Nurses)
+
+Administrative staff and nurses focus on clinic workflows, billing, scheduling, and preliminary patient triage.
+• What They Monitor:
+	• Scheduling calendar: Appointment bookings, cancellations, check-ins, and walk-ins.
+	• Billing & Insurance: Invoice statuses, co-pays, insurance verification results, and outstanding balances.
+	• Triage metrics (Nurses): Vital signs, weight, and initial complaints entered during pre-examination.
+	• Communication portal: Patient messages, check-in forms, and incoming faxed documents.
+
+Data Control & Limitations
+
+• Retention (How long it is kept): Financial and scheduling logs are typically kept for 7 years for tax and audit compliance.
+• What can be Edited: Demographic data (address, phone number), insurance details, and scheduling slots. Nurses can edit initial intake vitals during the check-in window.
+• What can be Deleted: Duplicate or mistakenly created appointment slots can be deleted. Cancelled appointments are generally marked as "Cancelled" rather than deleted to track clinic metrics.
+• What can be Archived: Expired insurance policies, old billing invoices, and past schedules.
+• Update Frequency: Hourly / Continuously. Schedules and check-ins must refresh constantly to prevent bottlenecks.
+
+3. Patient’s Dashboard (Patient Portal)
+
+The patient view is a simplified, highly secure interface restricted strictly to their own personal information.
+• What They Monitor:
+	• Personal Health Summary: Active prescriptions, upcoming appointments, and immunizations.
+	• Released results: Lab reports and doctor summaries that have been formally cleared for patient viewing.
+	• Financials: Outstanding balances, past invoices, and online payment options.
+	• Secure messaging: Direct messaging history with their care team.
+
+Data Control & Limitations
+
+• Retention (How long it is kept): Accessible for as long as the patient remains active with the clinic. If they leave, they can request a data export before the account is deactivated.
+• What can be Edited: Personal profile details (email, phone, pharmacy preference) and upcoming appointment requests.
+• What can be Deleted: Draft messages or unsubmitted intake forms. Patients cannot delete any medical history, bills, or official clinic communications.
+• What can be Archived: Past messages or old notifications to clean up their personal inbox view.
+• Update Frequency: Daily / On-demand. Data updates when a new action occurs (e.g., a lab result is released or a payment is processed).
+
+
+Pharmarcy Dashboard (Pharmacy portal/dashboard)
+
+1. Prescription & Order Management
+
+• What is Monitored: Incoming e-prescriptions, pending refills, order verification status, and dispensing queues.
+• Update & Check Frequency: Per session / Real-time. Staff must check this continuously to prevent dispensing delays.
+• Data Retention & Compliance: Generally kept for 2 to 10 years depending on local laws (e.g., FDA, HIPAA, or state boards).
+• Permissions:
+	• Edit: Strictly limited. Pharmacists can append notes or clarify dosages after documenting verification with the prescriber, but they cannot alter the original digital prescription file.
+	• Delete: Never deleted. If a prescription is canceled, its status is changed to "Voided" or "Canceled" to preserve the audit trail.
+	• Archive: Automatically archived after the legal active period (e.g., 1 year after the last refill).
+
+2. Patient Profiles & Clinical Safety
+
+• What is Monitored: Patient demographics, known allergies, current medical conditions, and Drug Utilization Review (DUR) alerts (e.g., harmful drug interactions).
+• Update & Check Frequency: Per session / Patient encounter. Must be reviewed every single time a script is filled.
+• Data Retention & Compliance: Kept for minimum 10 years (or longer if the patient is a minor, usually retained until they reach adulthood plus a buffer of years).
+• Permissions:
+	• Edit: Demographic details (address, insurance) can be edited freely. Clinical notes or allergy profiles can be updated but generate a permanent log entry.
+	• Delete: Patient profiles cannot be deleted.
+	• Archive: Marked as "Inactive" or archived if the patient has not filled a prescription within 2–3 years.
+
+3. Inventory & Supply Chain
+
+• What is Monitored: Stock levels, reorder thresholds, expiring medications, and specialized tracking for controlled substances.
+• Update & Check Frequency: Daily / Shift-ly. Automated systems track this in real-time, but manual inventory checks happen daily or weekly.
+• Data Retention & Compliance: Transaction history (e.g., DSCSA tracking in the US) must be kept for 6 to 7 years.
+• Permissions:
+	• Edit: Quantities can be adjusted following physical audits or when corrections are made for damaged stock.
+	• Delete: Inventory line items can only be deleted if they were entered in error and no transactions are tied to them.
+	• Archive: Discontinued medications are archived so they no longer appear in active search results.
+
+4. Telehealth & Clinic Communication Logs
+
+• What is Monitored: Direct messages, video call logs, and clarification requests between the pharmacist and the prescribing doctor.
+• Update & Check Frequency: Hourly. Messages must be checked frequently to resolve blocks on pending prescriptions.
+• Data Retention & Compliance: Treated as part of the medical/pharmacy record and kept for 7 to 10 years.
+• Permissions:
+	• Edit/Delete: Sent messages and audit logs cannot be edited or deleted once finalized to maintain legal accountability.
+	• Archive: Threads are automatically archived once an issue is marked as "Resolved."
+
+
+private policies for all 3 roles
+redirecting accordingly when web app is opened:
+https://nextjs-dashoard-psi.vercel.app/medi-clinic is for patients
+https://nextjs-dashoard-psi.vercel.app/medi-clinic/dashboard is for Administrative-login required or create user(name,surname, occupation(role-reception,nurse))
+https://nextjs-dashoard-psi.vercel.app/medi-clinic/doctors is for doctors-login required or create user(doctor-name,occupation)
+https://nextjs-dashoard-psi.vercel.app/medi-clinic/pharmacy  is for pharmacy-login required or create user(name,surname, role(front-desk(reception),stocker,pharmacist))

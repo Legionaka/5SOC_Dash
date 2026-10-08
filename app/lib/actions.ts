@@ -4,7 +4,7 @@ import { z } from 'zod';
 import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { signIn } from '@/auth';
+import { auth, signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
@@ -35,7 +35,15 @@ export type State = {
   message?: string | null;
 };
 
+async function requireAdmin() {
+  const session = await auth();
+  if (!session?.user) redirect('/login');
+  if (session.user.role !== 'admin') redirect('/unauthorized');
+}
+
 export async function createInvoice(prevState: State, formData: FormData) {
+  await requireAdmin();
+
   // Validate form fields using Zod
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
@@ -79,6 +87,8 @@ export async function updateInvoice(
   prevState: State,
   formData: FormData,
 ) {
+  await requireAdmin();
+
   const validatedFields = UpdateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -110,6 +120,8 @@ export async function updateInvoice(
 }
 
 export async function deleteInvoice(id: string) {
+  await requireAdmin();
+
   await sql`DELETE FROM invoices WHERE id = ${id}`;
   revalidatePath('/dashboard/invoices');
 }

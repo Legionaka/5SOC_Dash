@@ -8,21 +8,54 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import type { UserRole } from '@/app/lib/definitions';
 
-// Map of links to display in the side navigation.
-// Depending on the size of the application, this would be stored in a database.
-const links = [
-  { name: 'Home', href: '/dashboard', icon: HomeIcon },
-  {
-    name: 'Invoices',
-    href: '/dashboard/invoices',
-    icon: DocumentDuplicateIcon,
-  },
-  { name: 'Customers', href: '/dashboard/customers', icon: UserGroupIcon },
-];
-
-export default function NavLinks() {
+export default function NavLinks({ role }: { role?: UserRole }) {
   const pathname = usePathname();
+  const links =
+    role === 'admin'
+      ? [
+          { name: 'Home', href: '/dashboard', icon: HomeIcon },
+          {
+            name: 'Invoices',
+            href: '/dashboard/invoices',
+            icon: DocumentDuplicateIcon,
+          },
+          {
+            name: 'Customers',
+            href: '/dashboard/customers',
+            icon: UserGroupIcon,
+          },
+        ]
+      : role === 'patient'
+        ? [{ name: 'Patient Portal', href: '/dashboard/user', icon: HomeIcon }]
+        : role === 'doctor'
+          ? [{ name: 'Doctor Workspace', href: '/dashboard/doctor', icon: HomeIcon }]
+          : role === 'pharmacy_reception'
+            ? [
+                {
+                  name: 'Front Desk',
+                  href: '/dashboard/pharmacy/reception',
+                  icon: HomeIcon,
+                },
+              ]
+            : role === 'pharmacy_stocker'
+              ? [
+                  {
+                    name: 'Pharmacy Stock',
+                    href: '/dashboard/pharmacy/stock',
+                    icon: HomeIcon,
+                  },
+                ]
+              : role === 'pharmacist'
+                ? [
+                    {
+                      name: 'Pharmacist Workspace',
+                      href: '/dashboard/pharmacy/pharmacist',
+                      icon: HomeIcon,
+                    },
+                  ]
+                : [];
 
   return (
     <>

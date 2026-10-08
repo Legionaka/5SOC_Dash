@@ -1,13 +1,39 @@
-// This file contains type definitions for your data.
-// It describes the shape of the data, and what data type each property should accept.
-// For simplicity of teaching, we're manually defining these types.
-// However, these types are generated automatically if you're using an ORM such as Prisma.
+import type { DefaultSession } from 'next-auth';
+
+export const USER_ROLES = [
+  'admin',
+  'doctor',
+  'patient',
+  'pharmacy_reception',
+  'pharmacy_stocker',
+  'pharmacist',
+] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
+export function isUserRole(role: unknown): role is UserRole {
+  return USER_ROLES.some((userRole) => userRole === role);
+}
+
 export type User = {
   id: string;
   name: string;
   email: string;
   password: string;
+  role: UserRole;
 };
+
+declare module 'next-auth' {
+  interface User {
+    role?: UserRole;
+  }
+
+  interface Session {
+    user: {
+      role?: UserRole;
+    } & DefaultSession['user'];
+  }
+}
 
 export type Customer = {
   id: string;
