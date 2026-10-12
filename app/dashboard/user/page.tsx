@@ -93,7 +93,7 @@ export default async function PatientDashboardPage() {
       </div>
 
       {/* Appointments Section */}
-      <PatientAppointmentsSection appointments={data.upcomingAppointments} />
+      <PatientAppointmentsSection appointments={data.upcomingAppointments} bookingOptions={data.bookingOptions} />
 
       {/* Wallet & Invoices Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -106,7 +106,7 @@ export default async function PatientDashboardPage() {
       </div>
 
       {/* Support Section */}
-      <PatientSupportSection />
+      <PatientSupportSection supportChannels={data.supportChannels} />
     </main>
   );
 }

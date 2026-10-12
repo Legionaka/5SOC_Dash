@@ -200,4 +200,34 @@ const walletTransactions = [
   },
 ];
 
-export { users, customers, invoices, revenue, patientAppointments, walletTransactions };
+const consultationTypes = [
+  { id: 'routine_preventive', label: 'Routine & Preventive Care', examples: 'Annual physicals, vaccinations, screenings', duration_minutes: 30, fee_cents: 4500 },
+  { id: 'acute_illness', label: 'Acute Illnesses & Infections', examples: 'Respiratory issues, infections, digestive complaints', duration_minutes: 20, fee_cents: 3500 },
+  { id: 'chronic_management', label: 'Chronic Condition Management', examples: 'Cardiovascular, pain management, respiratory conditions', duration_minutes: 40, fee_cents: 6000 },
+  { id: 'concerning_symptoms', label: 'New or Concerning Symptoms', examples: 'Skin changes, unexplained symptoms, acute pain', duration_minutes: 45, fee_cents: 7000 },
+  { id: 'mental_health_admin', label: 'Mental Health & Administrative', examples: 'Support, referrals, prescription refills', duration_minutes: 15, fee_cents: 3000 },
+];
+
+const doctors = [
+  { id: 'dr-james-smith', name: 'Dr. James Smith', specialty: 'General Practitioner', category: 'Primary Care' },
+  { id: 'dr-sarah-johnson', name: 'Dr. Sarah Johnson', specialty: 'Dermatologist', category: 'Medical Specialists' },
+  { id: 'dr-michael-chen', name: 'Dr. Michael Chen', specialty: 'Cardiologist', category: 'Medical Specialists' },
+];
+
+const doctorAvailability = doctors.flatMap((doctor) =>
+  [1, 2, 3, 4, 5].flatMap((dayOfWeek) =>
+    ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'].map((time) => ({
+      doctor_id: doctor.id,
+      day_of_week: dayOfWeek,
+      appointment_time: time,
+    })),
+  ),
+);
+
+const supportChannels = [
+  { id: 'phone', title: 'Phone support', detail: '+1 (555) 014-3344', type: 'phone' },
+  { id: 'website', title: 'Website support', detail: 'Chat with clinic support', type: 'website' },
+  { id: 'clinic', title: 'Clinic assistance', detail: 'Front desk • Open today 08:00–18:00', type: 'clinic' },
+];
+
+export { users, customers, invoices, revenue, patientAppointments, walletTransactions, consultationTypes, doctors, doctorAvailability, supportChannels };

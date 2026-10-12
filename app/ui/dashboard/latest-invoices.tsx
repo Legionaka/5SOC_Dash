@@ -1,6 +1,7 @@
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 import Image from 'next/image';
+import Link from 'next/link';
 import { lusitana } from '@/app/ui/fonts';
 import { fetchLatestInvoices } from '@/app/lib/data';
 
@@ -14,21 +15,25 @@ export default async function LatestInvoices() {
       </h2>
       <div className="flex grow flex-col justify-between rounded-xl bg-gray-50 p-4">
         <div className="bg-white px-6">
-          {latestInvoices.map((invoice, i) => {
-            return (
-              <div
+          {latestInvoices.length === 0 ? (
+            <div className="px-2 py-8 text-center text-sm text-gray-500">
+              No invoices have been created yet.
+            </div>
+          ) : (
+            latestInvoices.map((invoice, i) => (
+              <Link
                 key={invoice.id}
+                href={`/dashboard/invoices/${invoice.id}/edit`}
                 className={clsx(
-                  'flex flex-row items-center justify-between py-4',
-                  {
-                    'border-t': i !== 0,
-                  },
+                  'flex flex-row items-center justify-between gap-4 py-4 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset',
+                  { 'border-t': i !== 0 },
                 )}
+                aria-label={`Open invoice for ${invoice.name}`}
               >
-                <div className="flex items-center">
+                <div className="flex min-w-0 items-center">
                   <Image
-                    src={invoice.image_url}
-                    alt={`${invoice.name}'s profile picture`}
+                    src={invoice.image_url || '/customers/evil-rabbit.png'}
+                    alt=""
                     className="mr-4 rounded-full"
                     width={32}
                     height={32}
@@ -37,23 +42,33 @@ export default async function LatestInvoices() {
                     <p className="truncate text-sm font-semibold md:text-base">
                       {invoice.name}
                     </p>
-                    <p className="hidden text-sm text-gray-500 sm:block">
+                    <p className="hidden truncate text-sm text-gray-500 sm:block">
                       {invoice.email}
                     </p>
                   </div>
                 </div>
-                <p
-                  className={`${lusitana.className} truncate text-sm font-medium md:text-base`}
-                >
-                  {invoice.amount}
-                </p>
-              </div>
-            );
-          })}
+                <div className="flex shrink-0 items-center gap-3">
+                  <div className="text-right">
+                    <p className={`${lusitana.className} text-sm font-medium md:text-base`}>
+                      {invoice.amount}
+                    </p>
+                    <p className="text-xs capitalize text-gray-500">{invoice.status}</p>
+                  </div>
+                  <ArrowRightIcon className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                </div>
+              </Link>
+            ))
+          )}
         </div>
-        <div className="flex items-center pb-2 pt-6">
-          <ArrowPathIcon className="h-5 w-5 text-gray-500" />
-          <h3 className="ml-2 text-sm text-gray-500 ">Updated just now</h3>
+        <div className="flex items-center justify-between gap-4 pb-2 pt-6">
+          <p className="text-sm text-gray-500">Showing the 5 most recent invoices</p>
+          <Link
+            href="/dashboard/invoices"
+            className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            View all
+            <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </div>

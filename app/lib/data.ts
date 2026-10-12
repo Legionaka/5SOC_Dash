@@ -24,7 +24,7 @@ export async function fetchRevenue() {
 export async function fetchLatestInvoices() {
   try {
     const data = await sql<LatestInvoiceRaw[]>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
+      SELECT invoices.amount, invoices.status, customers.name, customers.image_url, customers.email, invoices.id
       FROM invoices
       JOIN customers ON invoices.customer_id = customers.id
       ORDER BY invoices.date DESC
@@ -181,13 +181,19 @@ export async function fetchPatientDashboardData(email: string) {
       LIMIT 1
     `;
 
-    const appointments = await sql`
-      SELECT id, doctor_name, specialty, appointment_date, appointment_time, reason, status
+    const [appointments, consultationTypes, doctors, availability, supportChannels] = await Promise.all([
+      sql`
+      SELECT id, doctor_id, doctor_name, specialty, appointment_date, appointment_time, reason, status, fee_cents
       FROM appointments
       WHERE patient_email = ${email}
       ORDER BY appointment_date ASC, appointment_time ASC
       LIMIT 5
-    `;
+      `,
+      sql`SELECT id, label, examples, duration_minutes, fee_cents FROM consultation_types WHERE active = TRUE ORDER BY label`,
+      sql`SELECT id, name, specialty, category FROM doctors WHERE active = TRUE ORDER BY category, name`,
+      sql`SELECT doctor_id, day_of_week, appointment_time FROM doctor_availability WHERE active = TRUE ORDER BY day_of_week, appointment_time`,
+      sql`SELECT id, title, detail, type FROM support_channels WHERE active = TRUE ORDER BY id`,
+    ]);
 
     const transactions = await sql`
       SELECT id, amount, status, description
@@ -219,13 +225,14 @@ export async function fetchPatientDashboardData(email: string) {
     const money = (value: unknown) => `$${(Number(value ?? 0) / 100).toFixed(2)}`;
     const formattedAppointments = appointments.map((appointment) => ({
       id: String(appointment.id),
+      doctorId: appointment.doctor_id ? String(appointment.doctor_id) : null,
       doctor: appointment.doctor_name,
       specialty: appointment.specialty,
       date: String(appointment.appointment_date),
       time: appointment.appointment_time,
       reason: appointment.reason,
       status: appointment.status,
-      amount: 0,
+      amount: Number(appointment.fee_cents ?? 0),
     }));
 
     return {
@@ -257,6 +264,32 @@ export async function fetchPatientDashboardData(email: string) {
         createdDate: String(invoice.date),
       })),
       unreadNotifications: 0,
+      bookingOptions: {
+        consultationTypes: consultationTypes.map((type) => ({
+          id: type.id,
+          label: type.label,
+          examples: type.examples,
+          durationMinutes: Number(type.duration_minutes),
+          feeCents: Number(type.fee_cents),
+        })),
+        doctors: doctors.map((doctor) => ({
+          id: doctor.id,
+          name: doctor.name,
+          specialty: doctor.specialty,
+          category: doctor.category,
+        })),
+        availability: availability.map((slot) => ({
+          doctorId: slot.doctor_id,
+          dayOfWeek: Number(slot.day_of_week),
+          time: slot.appointment_time,
+        })),
+      },
+      supportChannels: supportChannels.map((channel) => ({
+        id: channel.id,
+        title: channel.title,
+        detail: channel.detail,
+        type: channel.type,
+      })),
     };
   } catch (error) {
     console.error('Patient dashboard data unavailable.', error);
@@ -273,6 +306,8 @@ export async function fetchPatientDashboardData(email: string) {
       walletTransactions: [],
       invoices: [],
       unreadNotifications: 0,
+      bookingOptions: { consultationTypes: [], doctors: [], availability: [] },
+      supportChannels: [],
     };
   }
 }
