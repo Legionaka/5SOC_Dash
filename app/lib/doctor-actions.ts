@@ -41,12 +41,13 @@ function refreshClinicalViews(patientEmail?: string) {
 
 export async function updateAppointmentCheckIn(appointmentId: string, checkInStatus: string) {
   const session = await auth();
-  const actor = session?.user.email && ['admin', 'doctor', 'pharmacy_reception'].includes(session.user.role ?? '')
+  const actor = session?.user.email && ['admin', 'doctor', 'nurse', 'pharmacy_reception'].includes(session.user.role ?? '')
     ? { email: session.user.email, role: session.user.role ?? 'staff' }
     : null;
   const id = z.string().uuid().safeParse(appointmentId);
   const status = z.enum(['Not checked in', 'Checked in', 'In consultation', 'Complete']).safeParse(checkInStatus);
   if (!actor || !id.success || !status.success) return { success: false, message: 'Unable to update appointment check-in.' };
+  if (['nurse', 'pharmacy_reception'].includes(actor.role) && !['Not checked in', 'Checked in'].includes(status.data)) return { success: false, message: 'Your role can update check-in status only.' };
   try {
     const [appointment] = await sql`
       UPDATE appointments

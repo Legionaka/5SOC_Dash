@@ -28,6 +28,7 @@ async function seedUsers() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_contact_method TEXT NOT NULL DEFAULT 'email'`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS data_sharing_consent BOOLEAN NOT NULL DEFAULT FALSE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE`;
 
   const insertedUsers = await Promise.all(
     users.map(async (user) => {
@@ -61,6 +62,24 @@ async function seedAppointments() {
   await sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS fee_cents INT NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS check_in_status TEXT NOT NULL DEFAULT 'Not checked in'`;
   await sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMP`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS patient_triage (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      appointment_id UUID NOT NULL UNIQUE REFERENCES appointments(id),
+      patient_email TEXT NOT NULL,
+      nurse_email TEXT NOT NULL,
+      blood_pressure TEXT NOT NULL DEFAULT '',
+      pulse INTEGER,
+      temperature_c NUMERIC(4,1),
+      weight_kg NUMERIC(5,1),
+      height_cm NUMERIC(5,1),
+      initial_complaint TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Draft',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      submitted_at TIMESTAMP
+    )
+  `;
 
   const insertedAppointments = await Promise.all(
     patientAppointments.map(

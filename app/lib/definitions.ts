@@ -3,6 +3,7 @@ import type { DefaultSession } from 'next-auth';
 export const USER_ROLES = [
   'admin',
   'doctor',
+  'nurse',
   'patient',
   'pharmacy_reception',
   'pharmacy_stocker',
@@ -21,16 +22,19 @@ export type User = {
   email: string;
   password: string;
   role: UserRole;
+  must_change_password?: boolean;
 };
 
 declare module 'next-auth' {
   interface User {
     role?: UserRole;
+    mustChangePassword?: boolean;
   }
 
   interface Session {
     user: {
       role?: UserRole;
+      mustChangePassword?: boolean;
     } & DefaultSession['user'];
   }
 }

@@ -7,8 +7,9 @@ const dashboardRoleRoutes: {
   roles: readonly UserRole[];
 }[] = [
   { prefix: '/dashboard/admin', roles: ['admin'] },
-  { prefix: '/dashboard/queue', roles: ['admin', 'doctor', 'pharmacy_reception'] },
-  { prefix: '/dashboard/calendar', roles: ['admin', 'doctor', 'pharmacy_reception'] },
+  { prefix: '/dashboard/nurse', roles: ['nurse', 'admin'] },
+  { prefix: '/dashboard/queue', roles: ['admin', 'doctor', 'nurse', 'pharmacy_reception'] },
+  { prefix: '/dashboard/calendar', roles: ['admin', 'doctor', 'nurse', 'pharmacy_reception'] },
   { prefix: '/dashboard/doctor', roles: ['admin', 'doctor'] },
   {
     prefix: '/dashboard/pharmacy/reception',
@@ -59,6 +60,8 @@ export function getDashboardHome(role: UserRole | undefined) {
       return '/dashboard';
     case 'doctor':
       return '/dashboard/doctor';
+    case 'nurse':
+      return '/dashboard/nurse';
     case 'patient':
       return '/dashboard/user';
     case 'pharmacy_reception':

@@ -428,6 +428,50 @@ export async function fetchStaffQueue() {
   `;
 }
 
+export async function fetchNurseQueue() {
+  return sql`
+    SELECT a.id, a.patient_email, COALESCE(u.name, a.patient_email) AS patient_name,
+      a.doctor_name, a.specialty, a.appointment_date, a.appointment_time,
+      a.reason, a.status, a.check_in_status,
+      t.blood_pressure, t.pulse, t.temperature_c, t.weight_kg, t.height_cm,
+      t.initial_complaint, t.status AS triage_status, t.nurse_email, t.updated_at AS triage_updated_at
+    FROM appointments a
+    LEFT JOIN users u ON u.email = a.patient_email
+    LEFT JOIN patient_triage t ON t.appointment_id = a.id
+    WHERE a.appointment_date = CURRENT_DATE AND a.status NOT IN ('Cancelled', 'Rejected', 'Completed')
+    ORDER BY CASE WHEN a.check_in_status = 'In consultation' THEN 1 ELSE 0 END, a.appointment_time
+    LIMIT 100
+  `;
+}
+
+export async function fetchAdminStaffAccounts() {
+  return sql`
+    SELECT id, name, email, role, must_change_password
+    FROM users
+    WHERE role IN ('doctor', 'nurse', 'pharmacist', 'pharmacy_reception', 'pharmacy_stocker')
+    ORDER BY role, name LIMIT 300
+  `;
+}
+
+export async function fetchAdminDashboardData() {
+  const [[appointments], [checkedIn], [waiting], [openTasks], [pendingInvoices], [staff], [doctors], [nurses]] = await Promise.all([
+    sql`SELECT COUNT(*)::int AS count FROM appointments WHERE appointment_date = CURRENT_DATE AND status NOT IN ('Cancelled', 'Rejected')`,
+    sql`SELECT COUNT(*)::int AS count FROM appointments WHERE appointment_date = CURRENT_DATE AND check_in_status IN ('Checked in', 'In consultation') AND status NOT IN ('Cancelled', 'Rejected', 'Completed')`,
+    sql`SELECT COUNT(*)::int AS count FROM appointments WHERE appointment_date = CURRENT_DATE AND check_in_status = 'Not checked in' AND status NOT IN ('Cancelled', 'Rejected', 'Completed')`,
+    sql`SELECT COUNT(*)::int AS count FROM patient_requests WHERE status = 'Open'`,
+    sql`SELECT COUNT(*)::int AS count, COALESCE(SUM(amount), 0)::bigint AS cents FROM invoices WHERE status = 'pending'`,
+    sql`SELECT COUNT(*)::int AS count FROM users WHERE role IN ('doctor', 'nurse', 'pharmacist', 'pharmacy_reception', 'pharmacy_stocker')`,
+    sql`SELECT COUNT(*)::int AS count FROM users WHERE role = 'doctor'`,
+    sql`SELECT COUNT(*)::int AS count FROM users WHERE role = 'nurse'`,
+  ]);
+  return {
+    appointments: Number(appointments?.count ?? 0), checkedIn: Number(checkedIn?.count ?? 0),
+    waiting: Number(waiting?.count ?? 0), openTasks: Number(openTasks?.count ?? 0),
+    pendingInvoices: Number(pendingInvoices?.count ?? 0), pendingInvoiceCents: Number(pendingInvoices?.cents ?? 0),
+    staff: Number(staff?.count ?? 0), doctors: Number(doctors?.count ?? 0), nurses: Number(nurses?.count ?? 0),
+  };
+}
+
 export async function fetchStaffCalendar() {
   return sql`
     SELECT doctors.name, doctors.specialty, doctor_availability.day_of_week, doctor_availability.appointment_time
@@ -516,7 +560,10 @@ export async function fetchDoctorPatientChart(email: string) {
   const [patient] = await sql`SELECT email, name, date_of_birth, phone, patient_number FROM users WHERE email = ${email} AND role = 'patient' LIMIT 1`;
   if (!patient) return null;
   const [appointments, items, results, notes, medicalRecords, prescriptions, referrals] = await Promise.all([
-    sql`SELECT id, doctor_name, specialty, appointment_date, appointment_time, reason, status, check_in_status FROM appointments WHERE patient_email = ${email} ORDER BY appointment_date DESC, appointment_time DESC LIMIT 30`,
+    sql`SELECT a.id, a.doctor_name, a.specialty, a.appointment_date, a.appointment_time, a.reason, a.status, a.check_in_status,
+      t.blood_pressure, t.pulse, t.temperature_c, t.weight_kg, t.height_cm, t.initial_complaint, t.status AS triage_status
+      FROM appointments a LEFT JOIN patient_triage t ON t.appointment_id = a.id
+      WHERE a.patient_email = ${email} ORDER BY a.appointment_date DESC, a.appointment_time DESC LIMIT 30`,
     sql`SELECT id, item_type, item_name, details, status, created_at FROM patient_clinical_items WHERE patient_email = ${email} AND archived_at IS NULL ORDER BY created_at DESC LIMIT 100`,
     sql`SELECT id, test_name, result_summary, source_system, priority, status, released_at, created_at, reviewed_at FROM diagnostic_results WHERE patient_email = ${email} ORDER BY created_at DESC LIMIT 50`,
     sql`SELECT id, appointment_id, doctor_email, title, content, status, addendum_to, created_at, signed_at FROM clinical_notes WHERE patient_email = ${email} ORDER BY created_at DESC LIMIT 50`,

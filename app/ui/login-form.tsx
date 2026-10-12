@@ -21,6 +21,7 @@ export default function LoginForm({
 }) {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const passwordUpdated = searchParams.get('passwordUpdated') === '1';
   const [errorMessage, formAction, isPending] = useActionState(
     authenticate,
     undefined,
@@ -40,6 +41,7 @@ export default function LoginForm({
         >
           {embedded ? 'Sign in to your account' : 'Please log in to continue.'}
         </h1>
+        {passwordUpdated && <p className="mb-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800" role="status">Password updated. Sign in with your new password.</p>}
         {embedded && (
           <p className="mb-5 text-sm leading-6 text-slate-600">
             Enter the credentials provided by your clinic.

@@ -15,20 +15,34 @@ export const authConfig = {
   ],
   callbacks: {
     jwt({ token, user }) {
-      if (user) token.role = user.role;
+      if (user) {
+        token.role = user.role;
+        (token as typeof token & { mustChangePassword?: boolean }).mustChangePassword = user.mustChangePassword;
+      }
       return token;
     },
     session({ session, token }) {
       if (session.user) {
         session.user.role = isUserRole(token.role) ? token.role : undefined;
+        session.user.mustChangePassword = (token as typeof token & { mustChangePassword?: boolean }).mustChangePassword === true;
       }
       return session;
     },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
+      if (nextUrl.pathname === '/change-password') {
+        if (!isLoggedIn) return false;
+        if (auth.user.mustChangePassword !== true) {
+          return Response.redirect(new URL(getDashboardHome(auth.user.role), nextUrl));
+        }
+        return true;
+      }
       if (isOnDashboard) {
         if (!isLoggedIn) return false;
+        if (auth.user.mustChangePassword === true) {
+          return Response.redirect(new URL('/change-password', nextUrl));
+        }
 
         const role = auth.user.role;
         const email = auth.user.email;
@@ -46,6 +60,9 @@ export const authConfig = {
       }
 
       if (nextUrl.pathname === '/login' && isLoggedIn) {
+        if (auth.user.mustChangePassword === true) {
+          return Response.redirect(new URL('/change-password', nextUrl));
+        }
         return Response.redirect(
           new URL(getDashboardHome(auth.user.role), nextUrl),
         );

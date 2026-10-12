@@ -16,7 +16,7 @@ type QueueItem = {
   checkInStatus: string;
 };
 
-export default function DoctorQueueView({ appointments, canOpenCharts = true }: { appointments: QueueItem[]; canOpenCharts?: boolean }) {
+export default function DoctorQueueView({ appointments, canOpenCharts = true, limitedCheckIn = false }: { appointments: QueueItem[]; canOpenCharts?: boolean; limitedCheckIn?: boolean }) {
   if (appointments.length === 0) return <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">No upcoming appointments are assigned in the next 7 days.</div>;
   return <div className="space-y-3">{appointments.map((item) => (
     <article key={item.id} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -33,7 +33,7 @@ export default function DoctorQueueView({ appointments, canOpenCharts = true }: 
       </div>
       <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Patient check-in</p>
-        <CheckInControl appointmentId={item.id} value={item.checkInStatus} />
+        <CheckInControl appointmentId={item.id} value={item.checkInStatus} limited={limitedCheckIn} />
       </div>
     </article>
   ))}</div>;

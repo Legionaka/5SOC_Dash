@@ -36,6 +36,7 @@ const LINKS_BY_ROLE: Partial<Record<UserRole, NavSection[]>> = {
     { name: 'Overview', items: [{ name: 'Home', href: '/dashboard', icon: HomeIcon, exact: true }] },
     { name: 'Operations', items: [
       { name: 'Patients', href: '/dashboard/customers', icon: UserGroupIcon },
+      { name: 'Staff accounts', href: '/dashboard/admin/staff', icon: IdentificationIcon },
       { name: 'Invoices', href: '/dashboard/invoices', icon: DocumentDuplicateIcon },
       { name: 'Queue', href: '/dashboard/queue', icon: RectangleStackIcon },
       { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarDaysIcon },
@@ -71,6 +72,13 @@ const LINKS_BY_ROLE: Partial<Record<UserRole, NavSection[]>> = {
       { name: 'Clinical notes', href: '/dashboard/doctor/notes', icon: DocumentDuplicateIcon },
       { name: 'Availability', href: '/dashboard/doctor/availability', icon: CalendarDaysIcon },
       { name: 'Patient messages', href: '/dashboard/doctor/requests', icon: ChatBubbleLeftRightIcon },
+    ] },
+  ],
+  nurse: [
+    { name: 'Nursing', items: [
+      { name: 'Triage workspace', href: '/dashboard/nurse', icon: ClipboardDocumentListIcon, exact: true },
+      { name: 'Appointment queue', href: '/dashboard/queue', icon: RectangleStackIcon },
+      { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarDaysIcon },
     ] },
   ],
   pharmacy_reception: [

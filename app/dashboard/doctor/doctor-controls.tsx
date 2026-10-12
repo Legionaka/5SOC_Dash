@@ -24,7 +24,7 @@ function Feedback({ value }: { value: string | null }) {
   return value ? <p className="mt-3 break-words text-sm text-slate-600" role="status">{value}</p> : null;
 }
 
-export function CheckInControl({ appointmentId, value }: { appointmentId: string; value: string }) {
+export function CheckInControl({ appointmentId, value, limited = false }: { appointmentId: string; value: string; limited?: boolean }) {
   const [status, setStatus] = useState(value);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -38,7 +38,7 @@ export function CheckInControl({ appointmentId, value }: { appointmentId: string
   };
   return <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
     <select aria-label="Appointment check-in status" value={status} onChange={(event) => update(event.target.value)} disabled={saving} className="min-h-11 w-full rounded-lg border border-slate-300 px-3 text-sm sm:w-auto">
-      <option>Not checked in</option><option>Checked in</option><option>In consultation</option><option>Complete</option>
+      <option>Not checked in</option><option>Checked in</option>{(!limited || status === 'In consultation') && <option>In consultation</option>}{(!limited || status === 'Complete') && <option>Complete</option>}
     </select>
     {message && <span className="text-xs text-slate-500" role="status">{message}</span>}
   </div>;

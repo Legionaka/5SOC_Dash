@@ -11,7 +11,7 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 async function getUser(email: string): Promise<User | undefined> {
   try {
     const user =
-      await sql<User[]>`SELECT id, name, email, password, role FROM users WHERE email=${email}`;
+      await sql<User[]>`SELECT id, name, email, password, role, must_change_password FROM users WHERE email=${email}`;
     return user[0];
   } catch (error) {
     console.error('Failed to fetch user:', error);
@@ -41,6 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               name: user.name,
               email: user.email,
               role: user.role,
+              mustChangePassword: user.must_change_password === true,
             };
           }
         }
@@ -53,12 +54,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     jwt({ token, user }) {
-      if (user) token.role = user.role;
+      if (user) {
+        token.role = user.role;
+        (token as typeof token & { mustChangePassword?: boolean }).mustChangePassword = user.mustChangePassword;
+      }
       return token;
     },
     session({ session, token }) {
       if (session.user) {
         session.user.role = isUserRole(token.role) ? token.role : undefined;
+        session.user.mustChangePassword = (token as typeof token & { mustChangePassword?: boolean }).mustChangePassword === true;
       }
       return session;
     },
