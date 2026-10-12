@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import postgres from 'postgres';
 import { z } from 'zod';
+import { ensurePharmacyInventorySchema } from './pharmacy-schema';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const clinicianRoles = ['admin', 'doctor'] as const;
@@ -335,11 +336,43 @@ export async function updatePrescriptionStatus(prescriptionId: string, nextStatu
   nextStatus = parsedStatus.data;
   const actor = { email: session.user.email, role };
   if (role === 'pharmacist' && !['Verified', 'Dispensing', 'Dispensed'].includes(nextStatus)) return { success: false, message: 'Invalid pharmacy status.' };
-  if (role !== 'pharmacist' && nextStatus !== 'Voided') return { success: false, message: 'Doctors can only void an active prescription.' };
+  if (['admin', 'pharmacist'].includes(role) && nextStatus === 'Verified' && note.data.trim().length < 3) return { success: false, message: 'Add a short safety review note before verifying this prescription.' };
+  if (role === 'doctor' && nextStatus !== 'Voided') return { success: false, message: 'Doctors can only void an active prescription.' };
   try {
-    const [row] = await sql`
+    if (nextStatus === 'Dispensed') await ensurePharmacyInventorySchema();
+    const row = await sql.begin(async (tx) => {
+      if (nextStatus === 'Dispensed') {
+        const [prescription] = await tx`
+          SELECT patient_email, medication_name, strength, quantity
+          FROM prescriptions WHERE id = ${id.data} AND status = 'Dispensing' FOR UPDATE
+        `;
+        if (!prescription) return null;
+        const batches = await tx`
+          SELECT id, quantity FROM pharmacy_inventory
+          WHERE lower(medicine_name) = lower(${prescription.medication_name})
+            AND lower(strength) = lower(${prescription.strength}) AND quantity > 0
+            AND (expires_on IS NULL OR expires_on >= CURRENT_DATE)
+          ORDER BY expires_on ASC NULLS LAST, updated_at ASC
+          FOR UPDATE
+        `;
+        const available = batches.reduce((total, batch) => total + Number(batch.quantity), 0);
+        const required = Number(prescription.quantity);
+        if (available < required) throw new Error('PHARMACY_STOCK_INSUFFICIENT');
+        let remaining = required;
+        for (const batch of batches) {
+          if (remaining <= 0) break;
+          const taken = Math.min(remaining, Number(batch.quantity));
+          await tx`UPDATE pharmacy_inventory SET quantity = quantity - ${taken}, updated_at = NOW() WHERE id = ${batch.id}`;
+          await tx`
+            INSERT INTO pharmacy_inventory_transactions (item_id, actor_email, quantity_change, reason)
+            VALUES (${batch.id}, ${actor.email}, ${-taken}, ${`Dispensed prescription ${id.data}`})
+          `;
+          remaining -= taken;
+        }
+      }
+      const [updated] = await tx`
       UPDATE prescriptions SET
-        status = ${nextStatus}, pharmacist_note = CASE WHEN ${role} = 'pharmacist' AND ${note.data} <> '' THEN ${note.data} ELSE pharmacist_note END,
+        status = ${nextStatus}, pharmacist_note = CASE WHEN ${role} IN ('admin', 'pharmacist') AND ${note.data} <> '' THEN ${note.data} ELSE pharmacist_note END,
         verified_at = CASE WHEN ${nextStatus} = 'Verified' THEN COALESCE(verified_at, NOW()) ELSE verified_at END,
         dispensed_at = CASE WHEN ${nextStatus} = 'Dispensed' THEN COALESCE(dispensed_at, NOW()) ELSE dispensed_at END,
         voided_at = CASE WHEN ${nextStatus} = 'Voided' THEN NOW() ELSE voided_at END
@@ -348,13 +381,17 @@ export async function updatePrescriptionStatus(prescriptionId: string, nextStatu
           OR (${role} = 'pharmacist' AND ((${nextStatus} = 'Verified' AND status = 'Pending verification') OR (${nextStatus} = 'Dispensing' AND status = 'Verified') OR (${nextStatus} = 'Dispensed' AND status = 'Dispensing')))
           OR (${role} = 'doctor' AND ${nextStatus} = 'Voided' AND doctor_email = ${actor.email} AND status = 'Pending verification'))
       RETURNING patient_email
-    `;
+      `;
+      return updated ?? null;
+    });
     if (!row) return { success: false, message: 'Prescription not found or its status no longer allows this update.' };
     await audit(actor, 'prescription.status_updated', 'prescription', id.data, { status: nextStatus });
     refreshClinicalViews(row.patient_email);
     revalidatePath('/dashboard/pharmacy/pharmacist');
+    revalidatePath('/dashboard/pharmacy/stock');
     return { success: true, message: `Prescription ${nextStatus.toLowerCase()}.` };
   } catch (error) {
+    if (error instanceof Error && error.message === 'PHARMACY_STOCK_INSUFFICIENT') return { success: false, message: 'Not enough unexpired stock is available for this prescription. Ask the stocker to update inventory.' };
     console.error('Prescription update failed:', error);
     return { success: false, message: 'We could not update the prescription.' };
   }

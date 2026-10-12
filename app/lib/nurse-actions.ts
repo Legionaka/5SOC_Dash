@@ -59,3 +59,38 @@ export async function savePatientTriage(input: z.infer<typeof TriageSchema>) {
     return { success: false, message: 'We could not save triage.' };
   }
 }
+
+const NurseReplySchema = z.object({ requestId: z.string().uuid(), response: z.string().trim().min(2).max(2000) });
+
+export async function respondToNurseRequest(input: z.infer<typeof NurseReplySchema>) {
+  const session = await auth();
+  const parsed = NurseReplySchema.safeParse(input);
+  if (!session?.user.email || !['admin', 'nurse'].includes(session.user.role ?? '') || !parsed.success) {
+    return { success: false, message: 'Enter a reply and confirm your staff access.' };
+  }
+  try {
+    const [request] = await sql`
+      UPDATE patient_requests
+      SET response = ${parsed.data.response}, responded_by = ${session.user.email}, responded_at = NOW(), status = 'Answered'
+      WHERE id = ${parsed.data.requestId} AND status = 'Open'
+        AND request_type IN ('question', 'appointment_change')
+      RETURNING patient_email
+    `;
+    if (!request) return { success: false, message: 'This request has already been answered.' };
+    await sql`
+      INSERT INTO notifications (user_email, user_type, type, message)
+      VALUES (${request.patient_email}, 'patient', 'request_answered', 'Your care team replied to a request. Open your dashboard to view it.')
+    `;
+    await sql`
+      INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata)
+      VALUES (${session.user.email}, ${session.user.role ?? 'nurse'}, 'patient_request.answered', 'patient_request', ${parsed.data.requestId}, ${sql.json({ patientEmail: request.patient_email })})
+    `;
+    revalidatePath('/dashboard/nurse');
+    revalidatePath('/dashboard/doctor/requests');
+    revalidatePath('/dashboard/user');
+    return { success: true, message: 'Reply sent to the patient.' };
+  } catch (error) {
+    console.error('Nurse reply failed:', error);
+    return { success: false, message: 'We could not send the reply.' };
+  }
+}

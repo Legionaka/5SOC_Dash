@@ -1,18 +1,19 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
-import { fetchNurseQueue } from '@/app/lib/data';
+import { fetchNursePatientRequests, fetchNurseQueue } from '@/app/lib/data';
 import { NurseCheckInControl, NurseTriageForm } from './nurse-controls';
+import NurseRequests from './nurse-requests';
 
 export default async function NurseDashboardPage() {
   const session = await auth();
   if (!session?.user.role || !['admin', 'nurse'].includes(session.user.role)) redirect('/unauthorized');
-  const appointments = await fetchNurseQueue();
+  const [appointments, openRequests] = await Promise.all([fetchNurseQueue(), fetchNursePatientRequests()]);
   const waiting = appointments.filter((item) => item.check_in_status === 'Not checked in').length;
   const checkedIn = appointments.filter((item) => item.check_in_status === 'Checked in').length;
   const triagePending = appointments.filter((item) => item.triage_status !== 'Submitted' && item.check_in_status !== 'In consultation').length;
   return <main className="mx-auto w-full max-w-7xl space-y-6 pb-10">
     <header className="rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-50 via-white to-blue-50 p-5 shadow-sm sm:p-7"><p className="text-sm font-semibold uppercase tracking-[0.14em] text-teal-700">Nursing workspace</p><h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">Triage & patient intake</h1><p className="mt-2 text-sm leading-6 text-slate-600">Today’s appointments, check-in status, initial complaints, and intake observations.</p></header>
-    <section className="grid gap-3 min-[520px]:grid-cols-3" aria-label="Nursing overview">{[{ label: "Today's appointments", value: appointments.length }, { label: 'Waiting to check in', value: waiting }, { label: 'Triage still needed', value: triagePending }].map((item) => <article key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><p className="text-sm font-medium text-slate-600">{item.label}</p><p className="mt-2 text-3xl font-bold text-slate-950">{item.value}</p></article>)}</section>
+    <section className="grid gap-3 min-[520px]:grid-cols-2 xl:grid-cols-4" aria-label="Nursing overview">{[{ label: "Today's appointments", value: appointments.length }, { label: 'Waiting to check in', value: waiting }, { label: 'Triage still needed', value: triagePending }, { label: 'Open patient messages', value: openRequests.length }].map((item) => <article key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><p className="text-sm font-medium text-slate-600">{item.label}</p><p className="mt-2 text-3xl font-bold text-slate-950">{item.value}</p></article>)}</section>
     <section className="space-y-3"><div><h2 className="text-lg font-semibold text-slate-900">Today’s intake queue</h2><p className="text-sm text-slate-500">Submitted triage can be updated until the doctor starts the consultation ({checkedIn} currently checked in).</p></div>
       {appointments.length ? <div className="space-y-3">{appointments.map((item) => {
         const locked = item.check_in_status === 'In consultation';
@@ -23,5 +24,6 @@ export default async function NurseDashboardPage() {
         </article>;
       })}</div> : <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">No appointments are scheduled for today.</p>}
     </section>
+    <NurseRequests requests={openRequests.map((item) => ({ id: String(item.id), patient: String(item.patient_name), email: String(item.patient_email), type: String(item.request_type), message: String(item.message), createdAt: String(item.created_at) }))} />
   </main>;
 }

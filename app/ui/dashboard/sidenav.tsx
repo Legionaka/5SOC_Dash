@@ -52,7 +52,7 @@ export default function SideNav({
 
   return (
     <aside
-      className={`flex w-full shrink-0 flex-col border-b border-slate-200 bg-white px-4 py-4 md:h-screen md:border-b-0 md:border-r md:py-5 ${
+      className={`flex w-full shrink-0 flex-col border-b border-slate-200 bg-white px-4 py-4 md:h-dvh md:min-h-0 md:overflow-hidden md:border-b-0 md:border-r md:py-5 ${
         preferenceLoaded ? 'transition-[width] duration-200' : ''
       } ${collapsed ? 'md:w-[5.5rem] md:px-2' : 'md:w-64 md:px-4'}`}
       aria-label="Dashboard sidebar"
@@ -120,12 +120,12 @@ export default function SideNav({
 
       <nav
         aria-label="Main navigation"
-        className="mt-4 flex grow flex-row gap-2 overflow-x-auto md:mt-6 md:flex-col md:overflow-visible"
+        className="mt-4 flex min-h-0 grow flex-row gap-2 overflow-x-auto overscroll-x-contain md:mt-6 md:flex-1 md:flex-col md:overflow-x-hidden md:overflow-y-auto md:overscroll-y-contain"
       >
         <NavLinks role={role} collapsed={collapsed} />
       </nav>
 
-      <form action={signOutUser} className="mt-3 border-t border-slate-100 pt-3">
+      <form action={signOutUser} className="mt-3 shrink-0 border-t border-slate-100 pt-3">
         <button
           type="submit"
           className={`flex h-11 w-full items-center gap-3 rounded-xl border border-transparent px-3 text-sm font-medium text-slate-600 transition-colors hover:border-rose-300 hover:text-rose-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 ${

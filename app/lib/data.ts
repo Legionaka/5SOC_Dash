@@ -8,6 +8,7 @@ import {
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
+import { ensurePharmacyInventorySchema } from './pharmacy-schema';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -453,6 +454,14 @@ export async function fetchAdminStaffAccounts() {
   `;
 }
 
+export async function fetchDoctorStaffOptions() {
+  return sql`SELECT name, email FROM users WHERE role = 'doctor' ORDER BY name LIMIT 200`;
+}
+
+export async function fetchDoctorCatalogOptions() {
+  return sql`SELECT id, name, specialty FROM doctors WHERE active = TRUE ORDER BY name LIMIT 200`;
+}
+
 export async function fetchAdminDashboardData() {
   const [[appointments], [checkedIn], [waiting], [openTasks], [pendingInvoices], [staff], [doctors], [nurses]] = await Promise.all([
     sql`SELECT COUNT(*)::int AS count FROM appointments WHERE appointment_date = CURRENT_DATE AND status NOT IN ('Cancelled', 'Rejected')`,
@@ -472,9 +481,62 @@ export async function fetchAdminDashboardData() {
   };
 }
 
+export async function fetchAdminOperationsReport() {
+  const [payments, [upcoming], recentActivity, byStatus] = await Promise.all([
+    sql<{ status: string; count: number; cents: number }[]>`SELECT status, COUNT(*)::int AS count, COALESCE(SUM(amount), 0)::bigint AS cents FROM invoices GROUP BY status ORDER BY status`,
+    sql`SELECT COUNT(*)::int AS count FROM appointments WHERE appointment_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 6 AND status NOT IN ('Cancelled', 'Rejected')`,
+    sql<{ actor_email: string; actor_role: string; action: string; entity_type: string; created_at: Date }[]>`SELECT actor_email, actor_role, action, entity_type, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 8`,
+    sql<{ status: string; count: number }[]>`SELECT status, COUNT(*)::int AS count FROM appointments WHERE appointment_date = CURRENT_DATE GROUP BY status ORDER BY status`,
+  ]);
+  return { payments, upcoming: Number(upcoming?.count ?? 0), recentActivity, appointmentStatuses: byStatus };
+}
+
+export async function fetchNursePatientRequests() {
+  return sql`
+    SELECT id, patient_email, COALESCE(u.name, patient_email) AS patient_name,
+      request_type, message, created_at
+    FROM patient_requests r LEFT JOIN users u ON u.email = r.patient_email
+    WHERE r.status = 'Open' AND r.request_type IN ('question', 'appointment_change')
+    ORDER BY r.created_at ASC LIMIT 100
+  `;
+}
+
+export async function fetchPharmacyInventory() {
+  await ensurePharmacyInventorySchema();
+  return sql`
+    SELECT id, medicine_name, strength, batch_number, quantity, reorder_level, expires_on, updated_at,
+      (quantity <= reorder_level) AS low_stock,
+      (expires_on IS NOT NULL AND expires_on < CURRENT_DATE) AS expired,
+      (expires_on IS NOT NULL AND expires_on BETWEEN CURRENT_DATE AND CURRENT_DATE + 90) AS expiring_soon
+    FROM pharmacy_inventory
+    ORDER BY (quantity <= reorder_level) DESC, expires_on ASC NULLS LAST, medicine_name
+    LIMIT 500
+  `;
+}
+
+export async function fetchPharmacyInventoryHistory() {
+  await ensurePharmacyInventorySchema();
+  return sql`
+    SELECT t.id, t.actor_email, t.quantity_change, t.reason, t.created_at,
+      i.medicine_name, i.strength, i.batch_number
+    FROM pharmacy_inventory_transactions t
+    JOIN pharmacy_inventory i ON i.id = t.item_id
+    ORDER BY t.created_at DESC LIMIT 30
+  `;
+}
+
+export async function fetchReceptionInvoices() {
+  return sql`
+    SELECT i.id, i.amount, i.status, i.date, c.name AS patient_name, c.email AS patient_email
+    FROM invoices i JOIN customers c ON c.id = i.customer_id
+    WHERE i.status = 'pending'
+    ORDER BY i.date ASC LIMIT 200
+  `;
+}
+
 export async function fetchStaffCalendar() {
   return sql`
-    SELECT doctors.name, doctors.specialty, doctor_availability.day_of_week, doctor_availability.appointment_time
+    SELECT doctors.id AS doctor_id, doctors.name, doctors.specialty, doctor_availability.day_of_week, doctor_availability.appointment_time
     FROM doctors
     JOIN doctor_availability ON doctor_availability.doctor_id = doctors.id
     WHERE doctors.active = TRUE AND doctor_availability.active = TRUE
@@ -619,6 +681,7 @@ export async function fetchDoctorPrescriptions(email: string, isAdmin: boolean) 
 }
 
 export async function fetchPharmacyPrescriptions() {
+  await ensurePharmacyInventorySchema();
   return sql`
     SELECT p.id, p.patient_email, COALESCE(u.name, p.patient_email) AS patient_name,
       p.medication_name, p.strength, p.directions, p.quantity, p.refills, p.pharmacy,
@@ -626,7 +689,10 @@ export async function fetchPharmacyPrescriptions() {
       COALESCE((SELECT string_agg(item_name || CASE WHEN details <> '' THEN ': ' || details ELSE '' END, '; ')
         FROM patient_clinical_items WHERE patient_email = p.patient_email AND item_type = 'allergy' AND status = 'Active'), '') AS active_allergies,
       COALESCE((SELECT string_agg(item_name || CASE WHEN details <> '' THEN ': ' || details ELSE '' END, '; ')
-        FROM patient_clinical_items WHERE patient_email = p.patient_email AND item_type = 'medication' AND status = 'Active'), '') AS active_medications
+        FROM patient_clinical_items WHERE patient_email = p.patient_email AND item_type = 'medication' AND status = 'Active'), '') AS active_medications,
+      COALESCE((SELECT SUM(i.quantity)::int FROM pharmacy_inventory i
+        WHERE lower(i.medicine_name) = lower(p.medication_name) AND lower(i.strength) = lower(p.strength)
+          AND i.quantity > 0 AND (i.expires_on IS NULL OR i.expires_on >= CURRENT_DATE)), 0)::int AS inventory_on_hand
     FROM prescriptions p LEFT JOIN users u ON u.email = p.patient_email
     WHERE p.status NOT IN ('Voided', 'Dispensed')
     ORDER BY CASE WHEN p.status = 'Pending verification' THEN 0 WHEN p.status = 'Verified' THEN 1 ELSE 2 END, p.created_at

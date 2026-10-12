@@ -48,6 +48,99 @@ export async function createStaffAccount(input: z.infer<typeof StaffSchema>) {
   }
 }
 
+const DoctorBlockSchema = z.object({
+  doctorEmail: z.string().email(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  reason: z.string().trim().min(2).max(200),
+});
+
+export async function createAdminDoctorScheduleBlock(input: z.infer<typeof DoctorBlockSchema>) {
+  const session = await auth();
+  const parsed = DoctorBlockSchema.safeParse(input);
+  if (session?.user.role !== 'admin' || !session.user.email || !parsed.success || parsed.data.startTime >= parsed.data.endTime) {
+    return { success: false, message: 'Choose a doctor, valid date and time range, and reason.' };
+  }
+  try {
+    const [doctor] = await sql`SELECT name, email FROM users WHERE email = ${parsed.data.doctorEmail.toLowerCase()} AND role = 'doctor' LIMIT 1`;
+    if (!doctor) return { success: false, message: 'The selected doctor account was not found.' };
+    const [block] = await sql`
+      INSERT INTO doctor_schedule_blocks (doctor_email, doctor_name, block_date, start_time, end_time, reason)
+      VALUES (${doctor.email}, ${doctor.name}, ${parsed.data.date}, ${parsed.data.startTime}, ${parsed.data.endTime}, ${parsed.data.reason})
+      RETURNING id
+    `;
+    await sql`
+      INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata)
+      VALUES (${session.user.email}, 'admin', 'doctor_schedule.block_created', 'doctor_schedule_block', ${block.id}, ${sql.json({ ...parsed.data })})
+    `;
+    revalidatePath('/dashboard/calendar');
+    revalidatePath('/dashboard/doctor/availability');
+    revalidatePath('/dashboard/user/appointments');
+    return { success: true, message: `Unavailable time recorded for ${doctor.name}.` };
+  } catch (error) {
+    console.error('Admin schedule block failed:', error);
+    return { success: false, message: 'We could not save this unavailable time.' };
+  }
+}
+
+const AvailabilitySchema = z.object({
+  doctorId: z.string().trim().min(1).max(100),
+  dayOfWeek: z.number().int().min(0).max(6),
+  appointmentTime: z.string().regex(/^(0?[1-9]|1[0-2]):[0-5]\d (AM|PM)$/),
+});
+
+export async function addDoctorAvailabilitySlot(input: z.infer<typeof AvailabilitySchema>) {
+  const session = await auth();
+  const parsed = AvailabilitySchema.safeParse(input);
+  if (session?.user.role !== 'admin' || !session.user.email || !parsed.success) return { success: false, message: 'Check the doctor and availability details.' };
+  try {
+    const [doctor] = await sql`SELECT id, name FROM doctors WHERE id = ${parsed.data.doctorId} AND active = TRUE LIMIT 1`;
+    if (!doctor) return { success: false, message: 'The selected doctor is not active.' };
+    await sql`
+      INSERT INTO doctor_availability (doctor_id, day_of_week, appointment_time, active)
+      VALUES (${doctor.id}, ${parsed.data.dayOfWeek}, ${parsed.data.appointmentTime}, TRUE)
+      ON CONFLICT (doctor_id, day_of_week, appointment_time) DO UPDATE SET active = TRUE
+    `;
+    await sql`
+      INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata)
+      VALUES (${session.user.email}, 'admin', 'doctor_availability.slot_added', 'doctor_availability', ${doctor.id}, ${sql.json({ doctor: doctor.name, ...parsed.data })})
+    `;
+    revalidatePath('/dashboard/calendar');
+    revalidatePath('/dashboard/doctor/availability');
+    revalidatePath('/dashboard/user/appointments');
+    return { success: true, message: `Availability added for ${doctor.name}.` };
+  } catch (error) {
+    console.error('Availability slot creation failed:', error);
+    return { success: false, message: 'We could not add this availability slot.' };
+  }
+}
+
+export async function removeDoctorAvailabilitySlot(input: { doctorId: string; dayOfWeek: number; appointmentTime: string }) {
+  const session = await auth();
+  const parsed = AvailabilitySchema.safeParse(input);
+  if (session?.user.role !== 'admin' || !session.user.email || !parsed.success) return { success: false, message: 'You cannot update this availability.' };
+  try {
+    const [removed] = await sql`
+      UPDATE doctor_availability SET active = FALSE
+      WHERE doctor_id = ${parsed.data.doctorId} AND day_of_week = ${parsed.data.dayOfWeek}
+        AND appointment_time = ${parsed.data.appointmentTime} AND active = TRUE
+      RETURNING doctor_id
+    `;
+    if (!removed) return { success: false, message: 'Availability slot is already inactive.' };
+    await sql`
+      INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata)
+      VALUES (${session.user.email}, 'admin', 'doctor_availability.slot_removed', 'doctor_availability', ${removed.doctor_id}, ${sql.json(parsed.data)})
+    `;
+    revalidatePath('/dashboard/calendar');
+    revalidatePath('/dashboard/doctor/availability');
+    return { success: true, message: 'Availability slot removed.' };
+  } catch (error) {
+    console.error('Availability slot update failed:', error);
+    return { success: false, message: 'We could not remove this availability slot.' };
+  }
+}
+
 const PasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(12).max(128),

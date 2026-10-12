@@ -95,11 +95,19 @@ export function PrescriptionForm({ appointments }: { appointments: AppointmentOp
   </form>;
 }
 
-export function PrescriptionStatusButton({ id, status, allowVoid = false }: { id: string; status: string; allowVoid?: boolean }) {
+export function PrescriptionStatusButton({ id, status, allowVoid = false, inventoryAvailable, quantity, requireSafetyReview = false }: { id: string; status: string; allowVoid?: boolean; inventoryAvailable?: number; quantity?: number; requireSafetyReview?: boolean }) {
   const router = useRouter(); const [note, setNote] = useState(''); const [message, setMessage] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  const [safetyReviewed, setSafetyReviewed] = useState(false);
   const next = status === 'Pending verification' ? 'Verified' : status === 'Verified' ? 'Dispensing' : 'Dispensed';
-  async function update(value: string) { setBusy(true); const result = await updatePrescriptionStatus(id, value, note); setBusy(false); setMessage(result.message); if (result.success) router.refresh(); }
-  return <div className="flex flex-col gap-2 sm:flex-row sm:items-center"><input value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} placeholder="Pharmacy verification note (optional)" className="min-h-11 min-w-0 rounded-lg border border-slate-300 px-3 text-sm" /><button onClick={() => update(next)} disabled={busy} className="min-h-11 rounded-lg bg-teal-700 px-3 text-sm font-medium text-white disabled:opacity-50">{busy ? 'Updating...' : next}</button>{allowVoid && <button onClick={() => update('Voided')} disabled={busy} className="min-h-11 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 disabled:opacity-50">Void</button>}<Feedback value={message} /></div>;
+  const stockShort = next === 'Dispensed' && inventoryAvailable !== undefined && quantity !== undefined && inventoryAvailable < quantity;
+  async function update(value: string) {
+    if (value === 'Verified' && requireSafetyReview && !safetyReviewed) { setMessage('Confirm that you reviewed the patient safety information.'); return; }
+    setBusy(true); const result = await updatePrescriptionStatus(id, value, note); setBusy(false); setMessage(result.message); if (result.success) router.refresh();
+  }
+  return <div className="space-y-2">
+    {requireSafetyReview && next === 'Verified' && <label className="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" checked={safetyReviewed} onChange={(event) => setSafetyReviewed(event.target.checked)} className="mt-1 h-4 w-4 accent-teal-700" /><span>I reviewed the recorded allergies, active medications, and prescription instructions.</span></label>}
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center"><input value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} placeholder={next === 'Verified' ? 'Required: verification / safety review note' : 'Pharmacy note (optional)'} className="min-h-11 min-w-0 rounded-lg border border-slate-300 px-3 text-sm" /><button onClick={() => update(next)} disabled={busy || stockShort || (next === 'Verified' && requireSafetyReview && !safetyReviewed)} className="min-h-11 rounded-lg bg-teal-700 px-3 text-sm font-medium text-white disabled:opacity-50">{busy ? 'Updating...' : stockShort ? 'Insufficient stock' : next}</button>{allowVoid && <button onClick={() => update('Voided')} disabled={busy} className="min-h-11 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 disabled:opacity-50">Void</button>}</div><Feedback value={message} />
+  </div>;
 }
 
 export function ReferralForm({ appointments }: { appointments: AppointmentOption[] }) {

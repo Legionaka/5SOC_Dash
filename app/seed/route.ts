@@ -391,6 +391,32 @@ async function seedInvoices() {
   return insertedInvoices;
 }
 
+async function seedPharmacyInventory() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS pharmacy_inventory (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      medicine_name TEXT NOT NULL,
+      strength TEXT NOT NULL DEFAULT '',
+      batch_number TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+      reorder_level INTEGER NOT NULL DEFAULT 10 CHECK (reorder_level >= 0),
+      expires_on DATE,
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE (medicine_name, strength, batch_number)
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS pharmacy_inventory_transactions (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      item_id UUID NOT NULL REFERENCES pharmacy_inventory(id),
+      actor_email TEXT NOT NULL,
+      quantity_change INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+}
+
 async function seedCustomers() {
   await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 
@@ -446,6 +472,7 @@ export async function GET() {
     await seedWalletTransactions();
     await seedInvoices();
     await seedRevenue();
+    await seedPharmacyInventory();
 
     return Response.json({ message: 'Database seeded successfully' });
   } catch (error) {
