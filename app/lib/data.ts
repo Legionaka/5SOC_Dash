@@ -318,31 +318,46 @@ export async function fetchPatientDashboardData(email: string) {
 }
 
 export async function fetchPatientProfile(email: string) {
-  const [profile] = await sql`
-    SELECT id, name, email, date_of_birth, phone, national_id, patient_number, pharmacy_preference, avatar_url
-    FROM users WHERE email = ${email} AND role = 'patient' LIMIT 1
-  `;
-  return profile ?? { email, name: 'Patient' };
+  try {
+    const [profile] = await sql`
+      SELECT id, name, email, date_of_birth, phone, national_id, patient_number, pharmacy_preference, avatar_url
+      FROM users WHERE email = ${email} AND role = 'patient' LIMIT 1
+    `;
+    return profile ?? { email, name: 'Patient' };
+  } catch (error) {
+    console.error('Patient profile data unavailable:', error);
+    return { email, name: 'Patient' };
+  }
 }
 
 export async function fetchPatientNotifications(email: string) {
-  return sql`
-    SELECT id, type, message, read, created_at
-    FROM notifications
-    WHERE user_email = ${email} AND user_type = 'patient'
-    ORDER BY created_at DESC
-    LIMIT 50
-  `;
+  try {
+    return await sql`
+      SELECT id, type, message, read, created_at
+      FROM notifications
+      WHERE user_email = ${email} AND user_type = 'patient'
+      ORDER BY created_at DESC
+      LIMIT 50
+    `;
+  } catch (error) {
+    console.error('Patient notifications unavailable:', error);
+    return [];
+  }
 }
 
 export async function fetchPatientMedicalRecords(email: string) {
-  return sql`
-    SELECT id, record_type, title, summary, status, recorded_at
-    FROM medical_records
-    WHERE patient_email = ${email}
-    ORDER BY recorded_at DESC
-    LIMIT 50
-  `;
+  try {
+    return await sql`
+      SELECT id, record_type, title, summary, status, recorded_at
+      FROM medical_records
+      WHERE patient_email = ${email}
+      ORDER BY recorded_at DESC
+      LIMIT 50
+    `;
+  } catch (error) {
+    console.error('Patient medical records unavailable:', error);
+    return [];
+  }
 }
 
 export async function fetchStaffQueue() {
