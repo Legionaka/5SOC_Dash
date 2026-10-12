@@ -9,7 +9,7 @@ import { BellAlertIcon, ClipboardDocumentCheckIcon, ClockIcon, DocumentTextIcon,
 type Appointment = { id: string; doctor: string; specialty: string; date: string; time: string; status: string };
 type RecordItem = { id: string; type: string; title: string; summary: string; status: string; date: string };
 
-export default function PatientDashboardEnhancements({ appointments, records, invoices, unreadNotifications, phone, contactMethod }: {
+export default function PatientDashboardEnhancements({ appointments, records, invoices, unreadNotifications, phone, contactMethod, needsProfileUpdate, requests }: {
   appointments: Appointment[];
   records: RecordItem[];
   invoices: Array<{ id: string; status: string; amount: string }>;

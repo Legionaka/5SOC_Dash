@@ -11,7 +11,7 @@ export default function ProfileForm({ profile }: { profile: { name?: string; ema
     nationalId: profile.national_id ?? '',
     pharmacyPreference: profile.pharmacy_preference ?? '',
     emergencyContact: profile.emergency_contact ?? '',
-    preferredContactMethod: profile.preferred_contact_method === 'phone' ? 'phone' : 'email',
+    preferredContactMethod: (profile.preferred_contact_method === 'phone' ? 'phone' : 'email') as 'email' | 'phone',
     dataSharingConsent: Boolean(profile.data_sharing_consent),
   });
   const [message, setMessage] = useState<string | null>(null);
