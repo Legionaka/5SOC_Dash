@@ -172,6 +172,98 @@ export async function fetchCustomers() {
   }
 }
 
+export async function probePatientDashboardData(emailPresent: boolean) {
+  const result: {
+    invoiceColumns: string[];
+    customerColumns: string[];
+    userColumns: string[];
+    invoicesAmount?: string;
+    usersAmount?: string;
+    customersAmount?: string;
+    unqualifiedJoin?: string;
+    unqualifiedPosition?: string;
+  } = {
+    invoiceColumns: [],
+    customerColumns: [],
+    userColumns: [],
+  };
+
+  try {
+    const cols = await sql`
+      SELECT table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name IN ('invoices', 'customers', 'users')
+      ORDER BY table_name, ordinal_position
+    `;
+    result.invoiceColumns = cols
+      .filter((col) => col.table_name === 'invoices')
+      .map((col) => col.column_name);
+    result.customerColumns = cols
+      .filter((col) => col.table_name === 'customers')
+      .map((col) => col.column_name);
+    result.userColumns = cols
+      .filter((col) => col.table_name === 'users')
+      .map((col) => col.column_name);
+    // #region agent log
+    fetch('http://127.0.0.1:7826/ingest/f67fa5db-0508-44bf-803c-d13bfd7999ec',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d5deb'},body:JSON.stringify({sessionId:'7d5deb',runId:'pre-fix',hypothesisId:'A',location:'app/lib/data.ts:probePatientDashboardData',message:'schema columns',data:{invoiceColumns:result.invoiceColumns,customerColumns:result.customerColumns,userColumns:result.userColumns,emailPresent},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  } catch (error) {
+    const err = error as { message?: string; code?: string };
+    // #region agent log
+    fetch('http://127.0.0.1:7826/ingest/f67fa5db-0508-44bf-803c-d13bfd7999ec',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d5deb'},body:JSON.stringify({sessionId:'7d5deb',runId:'pre-fix',hypothesisId:'A',location:'app/lib/data.ts:probePatientDashboardData',message:'schema probe failed',data:{message:err.message,code:err.code},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }
+
+  const tryQuery = async (
+    hypothesisId: string,
+    label: string,
+    query: () => Promise<unknown>,
+  ) => {
+    try {
+      await query();
+      // #region agent log
+      fetch('http://127.0.0.1:7826/ingest/f67fa5db-0508-44bf-803c-d13bfd7999ec',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d5deb'},body:JSON.stringify({sessionId:'7d5deb',runId:'pre-fix',hypothesisId,location:'app/lib/data.ts:tryQuery',message:'query ok',data:{label},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return 'ok';
+    } catch (error) {
+      const err = error as { message?: string; code?: string; position?: string };
+      // #region agent log
+      fetch('http://127.0.0.1:7826/ingest/f67fa5db-0508-44bf-803c-d13bfd7999ec',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d5deb'},body:JSON.stringify({sessionId:'7d5deb',runId:'pre-fix',hypothesisId,location:'app/lib/data.ts:tryQuery',message:'query failed',data:{label,message:err.message,code:err.code,position:err.position},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return `${err.code}:${err.message}:pos=${err.position}`;
+    }
+  };
+
+  result.invoicesAmount = await tryQuery(
+    'A',
+    'invoices.amount',
+    () => sql`SELECT invoices.amount FROM invoices LIMIT 1`,
+  );
+  result.usersAmount = await tryQuery(
+    'B',
+    'users.amount',
+    () => sql`SELECT amount FROM users LIMIT 1`,
+  );
+  result.customersAmount = await tryQuery(
+    'B',
+    'customers.amount',
+    () => sql`SELECT amount FROM customers LIMIT 1`,
+  );
+  result.unqualifiedJoin = await tryQuery(
+    'C',
+    'unqualified amount users-customers join',
+    () => sql`
+      SELECT users.name, users.email, customers.name, amount
+      FROM users
+      JOIN customers ON customers.email = users.email
+      LIMIT 1
+    `,
+  );
+
+  return result;
+}
+
 export async function fetchFilteredCustomers(query: string) {
   try {
     const data = await sql<CustomersTableType[]>`
