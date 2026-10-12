@@ -509,6 +509,11 @@ export function PatientAppointmentsSection({ appointments, bookingOptions }: { a
                   </div>
                 </div>
 
+                <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50/70 p-4">
+                  <p className="text-sm font-semibold text-teal-900">Get ready for your visit</p>
+                  <p className="mt-1 text-xs leading-5 text-teal-800">Bring your ID and insurance details, arrive a little early, and note any questions or medicines you want to discuss. Contact the clinic if you need directions or accessibility support.</p>
+                </div>
+
                 <div className="mt-4 flex gap-2">
                   <button onClick={() => setReschedulingAppointment(appointment)} className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
                     Reschedule

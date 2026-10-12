@@ -25,6 +25,9 @@ async function seedUsers() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS patient_number TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pharmacy_preference TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_contact_method TEXT NOT NULL DEFAULT 'email'`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS data_sharing_consent BOOLEAN NOT NULL DEFAULT FALSE`;
 
   const insertedUsers = await Promise.all(
     users.map(async (user) => {
@@ -149,6 +152,33 @@ async function seedBookingCatalog() {
       entity_type TEXT NOT NULL,
       entity_id TEXT,
       metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS patient_requests (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      request_type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Open',
+      response TEXT,
+      responded_by TEXT,
+      responded_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`ALTER TABLE patient_requests ADD COLUMN IF NOT EXISTS response TEXT`;
+  await sql`ALTER TABLE patient_requests ADD COLUMN IF NOT EXISTS responded_by TEXT`;
+  await sql`ALTER TABLE patient_requests ADD COLUMN IF NOT EXISTS responded_at TIMESTAMP`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS patient_medication_reminders (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      medication_name TEXT NOT NULL,
+      reminder_time TEXT NOT NULL,
+      instructions TEXT NOT NULL DEFAULT '',
+      active BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )
   `;

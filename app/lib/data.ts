@@ -175,7 +175,7 @@ export async function fetchCustomers() {
 export async function fetchPatientDashboardData(email: string) {
   try {
     const [patient] = await sql`
-      SELECT id, name, email, date_of_birth, patient_number
+      SELECT id, name, email, date_of_birth, patient_number, phone, emergency_contact, preferred_contact_method, data_sharing_consent
       FROM users
       WHERE email = ${email} AND role = 'patient'
       LIMIT 1
@@ -185,9 +185,9 @@ export async function fetchPatientDashboardData(email: string) {
       sql`
       SELECT id, doctor_id, doctor_name, specialty, appointment_date, appointment_time, reason, status, fee_cents
       FROM appointments
-      WHERE patient_email = ${email}
+      WHERE patient_email = ${email} AND appointment_date >= CURRENT_DATE AND status NOT IN ('Cancelled', 'Completed', 'Rejected')
       ORDER BY appointment_date ASC, appointment_time ASC
-      LIMIT 5
+      LIMIT 10
       `,
       sql`SELECT id, label, examples, duration_minutes, fee_cents FROM consultation_types WHERE active = TRUE ORDER BY label`,
       sql`SELECT id, name, specialty, category FROM doctors WHERE active = TRUE ORDER BY category, name`,
@@ -203,6 +203,12 @@ export async function fetchPatientDashboardData(email: string) {
       LIMIT 10
     `;
 
+    const appointmentHistory = await sql`
+      SELECT id, doctor_name, specialty, appointment_date, appointment_time, status
+      FROM appointments WHERE patient_email = ${email} AND (appointment_date < CURRENT_DATE OR status IN ('Completed', 'Cancelled'))
+      ORDER BY appointment_date DESC, appointment_time DESC LIMIT 10
+    `;
+
     const [wallet] = await sql`
       SELECT
         COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS paid,
@@ -213,8 +219,9 @@ export async function fetchPatientDashboardData(email: string) {
       WHERE patient_email = ${email}
     `;
 
-    const [unreadNotifications, medicalRecordCount] = await Promise.all([
+    const [unreadNotifications, medicalRecords, medicalRecordCount] = await Promise.all([
       sql`SELECT COUNT(*)::int AS count FROM notifications WHERE user_email = ${email} AND user_type = 'patient' AND read = FALSE`,
+      sql`SELECT id, record_type, title, summary, status, recorded_at FROM medical_records WHERE patient_email = ${email} ORDER BY recorded_at DESC LIMIT 20`,
       sql`SELECT COUNT(*)::int AS count FROM medical_records WHERE patient_email = ${email}`,
     ]);
 
@@ -241,14 +248,17 @@ export async function fetchPatientDashboardData(email: string) {
     }));
 
     return {
-      patient: patient ?? { name: 'Patient', email },
+      patient: patient ?? { name: 'Patient', email, phone: null, emergency_contact: null, preferred_contact_method: 'email', data_sharing_consent: false },
       careHighlights: [
-        { label: 'Medical records', value: String(medicalRecordCount[0]?.count ?? 0) },
-        { label: 'Booked visits', value: String(formattedAppointments.length) },
-        { label: 'Notifications', value: String(unreadNotifications[0]?.count ?? 0) },
-        { label: 'Care plan', value: medicalRecordCount[0]?.count ? 'Available' : 'Pending' },
+        { label: 'Medical records', value: String(medicalRecordCount[0]?.count ?? 0), detail: 'Clinical documents shared by your care team.' },
+        { label: 'Booked visits', value: String(formattedAppointments.length), detail: 'Upcoming and recently scheduled appointments.' },
+        { label: 'Notifications', value: String(unreadNotifications[0]?.count ?? 0), detail: 'Unread updates from your clinic.' },
+        { label: 'Care plan', value: medicalRecords.some((record) => /care plan/i.test(record.record_type) || /care plan/i.test(record.title)) ? 'Available' : 'Not available', detail: 'A clinician shares a care plan when one is needed.' },
       ],
+      medicalRecords: medicalRecords.map((record) => ({ id: String(record.id), type: record.record_type, title: record.title, summary: record.summary, status: record.status, date: String(record.recorded_at) })),
+      recordsUpdatedAt: medicalRecords[0]?.recorded_at ? String(medicalRecords[0].recorded_at) : null,
       upcomingAppointments: formattedAppointments,
+      appointmentHistory: appointmentHistory.map((item) => ({ id: String(item.id), doctor: item.doctor_name, specialty: item.specialty, date: String(item.appointment_date), time: item.appointment_time, status: item.status })),
       walletSummary: [
         { label: 'Wallet Balance', value: money(wallet?.total), tone: 'emerald' },
         { label: 'Paid This Month', value: money(wallet?.paid), tone: 'blue' },
@@ -299,9 +309,12 @@ export async function fetchPatientDashboardData(email: string) {
   } catch (error) {
     console.error('Patient dashboard data unavailable.', error);
     return {
-      patient: { name: 'Patient', email },
-      careHighlights: [{ label: 'Active prescriptions', value: '0' }],
+      patient: { name: 'Patient', email, phone: null, emergency_contact: null, preferred_contact_method: 'email', data_sharing_consent: false },
+      careHighlights: [],
+      medicalRecords: [],
+      recordsUpdatedAt: null,
       upcomingAppointments: [],
+      appointmentHistory: [],
       walletSummary: [
         { label: 'Wallet Balance', value: '$0.00', tone: 'emerald' },
         { label: 'Paid This Month', value: '$0.00', tone: 'blue' },
@@ -320,13 +333,56 @@ export async function fetchPatientDashboardData(email: string) {
 export async function fetchPatientProfile(email: string) {
   try {
     const [profile] = await sql`
-      SELECT id, name, email, date_of_birth, phone, national_id, patient_number, pharmacy_preference, avatar_url
+      SELECT id, name, email, date_of_birth, phone, national_id, patient_number, pharmacy_preference, avatar_url, emergency_contact, preferred_contact_method, data_sharing_consent
       FROM users WHERE email = ${email} AND role = 'patient' LIMIT 1
     `;
     return profile ?? { email, name: 'Patient' };
   } catch (error) {
     console.error('Patient profile data unavailable:', error);
     return { email, name: 'Patient' };
+  }
+}
+
+export async function fetchPatientRequests(email: string) {
+  try {
+    return await sql`
+      SELECT id, request_type, message, status, response, created_at, responded_at
+      FROM patient_requests WHERE patient_email = ${email}
+      ORDER BY created_at DESC LIMIT 20
+    `;
+  } catch (error) {
+    console.error('Patient request history unavailable:', error);
+    return [];
+  }
+}
+
+export async function fetchOpenPatientRequests() {
+  try {
+    return await sql`
+      SELECT r.id, r.patient_email, u.name AS patient_name, r.request_type,
+        r.message, r.status, r.response, r.created_at
+      FROM patient_requests r
+      LEFT JOIN users u ON u.email = r.patient_email
+      WHERE r.status = 'Open'
+      ORDER BY r.created_at ASC LIMIT 100
+    `;
+  } catch (error) {
+    console.error('Staff patient request queue unavailable:', error);
+    return [];
+  }
+}
+
+export async function fetchPatientMedicationReminders(email: string) {
+  try {
+    return await sql`
+      SELECT id, medication_name, reminder_time, instructions
+      FROM patient_medication_reminders
+      WHERE patient_email = ${email} AND active = TRUE
+      ORDER BY reminder_time ASC LIMIT 50
+    `;
+  } catch (error) {
+    console.error('Patient medication reminders unavailable:', error);
+    return [];
   }
 }
 

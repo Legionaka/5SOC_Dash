@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import { updatePatientProfile } from '@/app/lib/patient-actions';
 
-export default function ProfileForm({ profile }: { profile: { name?: string; email?: string; date_of_birth?: string | Date | null; phone?: string | null; national_id?: string | null; pharmacy_preference?: string | null } }) {
+export default function ProfileForm({ profile }: { profile: { name?: string; email?: string; date_of_birth?: string | Date | null; phone?: string | null; national_id?: string | null; pharmacy_preference?: string | null; emergency_contact?: string | null; preferred_contact_method?: string | null; data_sharing_consent?: boolean } }) {
   const [form, setForm] = useState({
     name: profile.name ?? '',
     dateOfBirth: profile.date_of_birth ? String(profile.date_of_birth).slice(0, 10) : '',
     phone: profile.phone ?? '',
     nationalId: profile.national_id ?? '',
     pharmacyPreference: profile.pharmacy_preference ?? '',
+    emergencyContact: profile.emergency_contact ?? '',
+    preferredContactMethod: profile.preferred_contact_method === 'phone' ? 'phone' : 'email',
+    dataSharingConsent: Boolean(profile.data_sharing_consent),
   });
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -34,6 +37,9 @@ export default function ProfileForm({ profile }: { profile: { name?: string; ema
       </div>
       <label className="block text-sm font-medium text-slate-700">National ID / passport<input value={form.nationalId} onChange={(e) => update('nationalId', e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" /></label>
       <label className="block text-sm font-medium text-slate-700">Preferred pharmacy<input value={form.pharmacyPreference} onChange={(e) => update('pharmacyPreference', e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" /></label>
+      <label className="block text-sm font-medium text-slate-700">Emergency contact<input value={form.emergencyContact} onChange={(e) => update('emergencyContact', e.target.value)} placeholder="Name and phone number" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" /></label>
+      <label className="block text-sm font-medium text-slate-700">Preferred contact method<select value={form.preferredContactMethod} onChange={(e) => setForm((current) => ({ ...current, preferredContactMethod: e.target.value as 'email' | 'phone' }))} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"><option value="email">Email</option><option value="phone">Phone</option></select></label>
+      <label className="flex items-start gap-3 text-sm text-slate-700"><input type="checkbox" checked={form.dataSharingConsent} onChange={(e) => setForm((current) => ({ ...current, dataSharingConsent: e.target.checked }))} className="mt-1 rounded border-slate-300 text-teal-700 focus:ring-teal-600" /><span>Allow my care team to share relevant information with providers involved in my care.</span></label>
       <button disabled={saving} className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{saving ? 'Saving...' : 'Save changes'}</button>
       {message && <p className="text-sm text-slate-600" role="status">{message}</p>}
     </form>

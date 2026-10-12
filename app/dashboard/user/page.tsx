@@ -3,13 +3,15 @@ import { lusitana } from '@/app/ui/fonts';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { TEST_PATIENT_EMAIL } from '@/app/lib/access-control';
-import { fetchPatientDashboardData } from '@/app/lib/data';
+import { fetchPatientDashboardData, fetchPatientRequests, fetchPatientMedicationReminders } from '@/app/lib/data';
 import {
   PatientAppointmentsSection,
   PatientInvoicesSection,
   PatientSupportSection,
   PatientWalletSection,
 } from './client-components';
+import PatientDashboardEnhancements from './dashboard-enhancements';
+import MedicationReminders from './medication-reminders';
 import {
   BellAlertIcon,
   CalendarDaysIcon,
@@ -28,6 +30,10 @@ export default async function PatientDashboardPage() {
   }
 
   const data = await fetchPatientDashboardData(session.user.email!);
+  const [requests, medicationReminders] = await Promise.all([
+    fetchPatientRequests(session.user.email!),
+    fetchPatientMedicationReminders(session.user.email!),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-8 pb-12">
@@ -88,14 +94,28 @@ export default async function PatientDashboardPage() {
           <h3 className="text-sm font-semibold text-slate-900 mb-4">Health Overview</h3>
           <div className="space-y-3">
             {data.careHighlights.map((item) => (
-              <div key={item.label} className="flex items-center justify-between">
-                <span className="text-sm text-slate-600">{item.label}</span>
-                <span className="font-semibold text-slate-900">{item.value}</span>
+              <div key={item.label} className="flex items-start justify-between gap-3">
+                <span><span className="block text-sm text-slate-700">{item.label}</span><span className="mt-0.5 block text-xs leading-5 text-slate-500">{item.detail}</span></span>
+                <span className="shrink-0 font-semibold text-slate-900">{item.value}</span>
               </div>
             ))}
+            <p className="border-t border-slate-100 pt-3 text-xs text-slate-400">Clinical records last updated {data.recordsUpdatedAt ? new Date(data.recordsUpdatedAt).toLocaleDateString() : 'when your care team shares an update'}.</p>
           </div>
         </div>
       </div>
+
+      <PatientDashboardEnhancements
+        appointments={[...data.upcomingAppointments, ...data.appointmentHistory]}
+        records={data.medicalRecords}
+        invoices={data.invoices}
+        unreadNotifications={data.unreadNotifications}
+        phone={data.patient?.phone}
+        contactMethod={data.patient?.preferred_contact_method}
+        needsProfileUpdate={!data.patient?.phone || !data.patient?.emergency_contact}
+        requests={requests.map((item) => ({ id: String(item.id), type: String(item.request_type), message: String(item.message), status: String(item.status), response: item.response ? String(item.response) : null, createdAt: String(item.created_at), respondedAt: item.responded_at ? String(item.responded_at) : null }))}
+      />
+
+      <MedicationReminders reminders={medicationReminders.map((item) => ({ id: String(item.id), medication: String(item.medication_name), time: String(item.reminder_time), instructions: String(item.instructions ?? '') }))} />
 
       {/* Appointments Section */}
       <PatientAppointmentsSection appointments={data.upcomingAppointments} bookingOptions={data.bookingOptions} />

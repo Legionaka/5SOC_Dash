@@ -52,6 +52,9 @@ const ProfileSchema = z.object({
   phone: z.string().trim().max(40).optional(),
   nationalId: z.string().trim().max(80).optional(),
   pharmacyPreference: z.string().trim().max(120).optional(),
+  emergencyContact: z.string().trim().max(160).optional(),
+  preferredContactMethod: z.enum(['email', 'phone']).default('email'),
+  dataSharingConsent: z.boolean().default(false),
 });
 
 export async function updatePatientProfile(input: z.infer<typeof ProfileSchema>) {
@@ -65,7 +68,10 @@ export async function updatePatientProfile(input: z.infer<typeof ProfileSchema>)
       UPDATE users
       SET name = ${validated.data.name}, date_of_birth = ${validated.data.dateOfBirth || null},
           phone = ${validated.data.phone || null}, national_id = ${validated.data.nationalId || null},
-          pharmacy_preference = ${validated.data.pharmacyPreference || null}
+          pharmacy_preference = ${validated.data.pharmacyPreference || null},
+          emergency_contact = ${validated.data.emergencyContact || null},
+          preferred_contact_method = ${validated.data.preferredContactMethod},
+          data_sharing_consent = ${validated.data.dataSharingConsent}
       WHERE email = ${email} AND role = 'patient'
     `;
     revalidatePath('/dashboard/user');
@@ -76,6 +82,100 @@ export async function updatePatientProfile(input: z.infer<typeof ProfileSchema>)
   } catch (error) {
     console.error('Failed to update patient profile:', error);
     return { success: false, message: 'We could not update your profile.' };
+  }
+}
+
+const PatientRequestSchema = z.object({
+  type: z.enum(['question', 'appointment_change', 'prescription_refill', 'records_request']),
+  message: z.string().trim().min(10).max(2000),
+});
+
+export async function submitPatientRequest(input: z.infer<typeof PatientRequestSchema>) {
+  const session = await auth();
+  const email = session?.user.email;
+  if (!email || session.user.role !== 'patient') return { success: false, message: 'You are not authorized to contact the care team.' };
+  const validated = PatientRequestSchema.safeParse(input);
+  if (!validated.success) return { success: false, message: 'Choose a request type and enter at least 10 characters.' };
+  try {
+    await sql`INSERT INTO patient_requests (patient_email, request_type, message) VALUES (${email}, ${validated.data.type}, ${validated.data.message})`;
+    await recordPatientAudit(email, 'request.created', 'patient_request', undefined, { type: validated.data.type });
+    await notifyPatient(email, 'request_received', 'Your message was sent to the care team. They will respond through your preferred contact method.');
+    revalidatePath('/dashboard/user');
+    return { success: true, message: 'Your message was sent to the care team.' };
+  } catch (error) {
+    console.error('Failed to submit patient request:', error);
+    return { success: false, message: 'We could not send your message. Please try again.' };
+  }
+}
+
+export async function respondToPatientRequest(requestId: string, response: string) {
+  const session = await auth();
+  const staffEmail = session?.user.email;
+  if (!staffEmail || !session.user.role || !['admin', 'doctor'].includes(session.user.role)) {
+    return { success: false, message: 'You are not authorized to respond to patient messages.' };
+  }
+  const id = z.string().uuid().safeParse(requestId);
+  const content = z.string().trim().min(2).max(2000).safeParse(response);
+  if (!id.success || !content.success) return { success: false, message: 'Enter a reply of at least 2 characters.' };
+  try {
+    const [request] = await sql`
+      UPDATE patient_requests
+      SET response = ${content.data}, responded_by = ${staffEmail}, responded_at = NOW(), status = 'Answered'
+      WHERE id = ${id.data} AND status = 'Open'
+      RETURNING patient_email
+    `;
+    if (!request) return { success: false, message: 'This request is no longer open.' };
+    await sql`
+      INSERT INTO notifications (user_email, user_type, type, message)
+      VALUES (${request.patient_email}, 'patient', 'request_answered', 'Your care team replied to a request. Open your dashboard to view it.')
+    `;
+    revalidatePath('/dashboard/user');
+    revalidatePath('/dashboard/doctor/requests');
+    return { success: true, message: 'Reply sent to the patient.' };
+  } catch (error) {
+    console.error('Failed to respond to patient request:', error);
+    return { success: false, message: 'We could not send the reply.' };
+  }
+}
+
+const MedicationReminderSchema = z.object({
+  medicationName: z.string().trim().min(1).max(120),
+  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  instructions: z.string().trim().max(240).optional(),
+});
+
+export async function addPatientMedicationReminder(input: z.infer<typeof MedicationReminderSchema>) {
+  const session = await auth();
+  const email = session?.user.email;
+  if (!email || session.user.role !== 'patient') return { success: false, message: 'You are not authorized to manage these reminders.' };
+  const validated = MedicationReminderSchema.safeParse(input);
+  if (!validated.success) return { success: false, message: 'Enter a medicine name and a valid reminder time.' };
+  try {
+    await sql`
+      INSERT INTO patient_medication_reminders (patient_email, medication_name, reminder_time, instructions)
+      VALUES (${email}, ${validated.data.medicationName}, ${validated.data.reminderTime}, ${validated.data.instructions ?? ''})
+    `;
+    revalidatePath('/dashboard/user');
+    return { success: true, message: 'Personal reminder added.' };
+  } catch (error) {
+    console.error('Failed to add medication reminder:', error);
+    return { success: false, message: 'We could not save this reminder.' };
+  }
+}
+
+export async function removePatientMedicationReminder(reminderId: string) {
+  const session = await auth();
+  const email = session?.user.email;
+  if (!email || session.user.role !== 'patient' || !z.string().uuid().safeParse(reminderId).success) {
+    return { success: false, message: 'You are not authorized to remove this reminder.' };
+  }
+  try {
+    await sql`UPDATE patient_medication_reminders SET active = FALSE WHERE id = ${reminderId} AND patient_email = ${email}`;
+    revalidatePath('/dashboard/user');
+    return { success: true, message: 'Reminder removed.' };
+  } catch (error) {
+    console.error('Failed to remove medication reminder:', error);
+    return { success: false, message: 'We could not remove this reminder.' };
   }
 }
 

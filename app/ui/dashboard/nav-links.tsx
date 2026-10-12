@@ -5,6 +5,7 @@ import {
   BeakerIcon,
   BellAlertIcon,
   CalendarDaysIcon,
+  ChatBubbleLeftRightIcon,
   ClipboardDocumentListIcon,
   ComputerDesktopIcon,
   DocumentDuplicateIcon,
@@ -38,6 +39,7 @@ const LINKS_BY_ROLE: Partial<Record<UserRole, NavSection[]>> = {
       { name: 'Invoices', href: '/dashboard/invoices', icon: DocumentDuplicateIcon },
       { name: 'Queue', href: '/dashboard/queue', icon: RectangleStackIcon },
       { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarDaysIcon },
+      { name: 'Patient messages', href: '/dashboard/doctor/requests', icon: ChatBubbleLeftRightIcon },
     ] },
   ],
   patient: [
@@ -58,6 +60,7 @@ const LINKS_BY_ROLE: Partial<Record<UserRole, NavSection[]>> = {
       { name: 'Workspace', href: '/dashboard/doctor', icon: ClipboardDocumentListIcon },
       { name: 'Queue', href: '/dashboard/queue', icon: RectangleStackIcon },
       { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarDaysIcon },
+      { name: 'Patient messages', href: '/dashboard/doctor/requests', icon: ChatBubbleLeftRightIcon },
     ] },
   ],
   pharmacy_reception: [
