@@ -7,6 +7,8 @@ const dashboardRoleRoutes: {
   roles: readonly UserRole[];
 }[] = [
   { prefix: '/dashboard/admin', roles: ['admin'] },
+  { prefix: '/dashboard/queue', roles: ['admin', 'doctor', 'pharmacy_reception'] },
+  { prefix: '/dashboard/calendar', roles: ['admin', 'doctor', 'pharmacy_reception'] },
   { prefix: '/dashboard/doctor', roles: ['admin', 'doctor'] },
   {
     prefix: '/dashboard/pharmacy/reception',

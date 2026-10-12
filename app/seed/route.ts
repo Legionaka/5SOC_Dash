@@ -19,6 +19,12 @@ async function seedUsers() {
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'patient';
   `;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS national_id TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS patient_number TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pharmacy_preference TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
 
   const insertedUsers = await Promise.all(
     users.map(async (user) => {
@@ -112,6 +118,40 @@ async function seedBookingCatalog() {
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      user_type TEXT NOT NULL,
+      type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      read BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS medical_records (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      record_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Available',
+      recorded_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      actor_email TEXT NOT NULL,
+      actor_role TEXT NOT NULL,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
 
   await Promise.all(consultationTypes.map((type) => sql`
     INSERT INTO consultation_types (id, label, examples, duration_minutes, fee_cents)
@@ -135,6 +175,20 @@ async function seedBookingCatalog() {
     VALUES (${channel.id}, ${channel.title}, ${channel.detail}, ${channel.type})
     ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, detail = EXCLUDED.detail, type = EXCLUDED.type
   `));
+  await sql`
+    INSERT INTO notifications (user_email, user_type, type, message)
+    SELECT 'user@nextmail.com', 'patient', 'welcome', 'Your patient portal is ready.'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM notifications WHERE user_email = 'user@nextmail.com' AND type = 'welcome'
+    )
+  `;
+  await sql`
+    INSERT INTO medical_records (patient_email, record_type, title, summary, status)
+    SELECT 'user@nextmail.com', 'Care plan', 'Primary care plan', 'Your current care plan is available for review.', 'Available'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM medical_records WHERE patient_email = 'user@nextmail.com' AND title = 'Primary care plan'
+    )
+  `;
 }
 
 async function seedWalletTransactions() {

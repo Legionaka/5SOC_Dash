@@ -175,7 +175,7 @@ export async function fetchCustomers() {
 export async function fetchPatientDashboardData(email: string) {
   try {
     const [patient] = await sql`
-      SELECT id, name, email
+      SELECT id, name, email, date_of_birth, patient_number
       FROM users
       WHERE email = ${email} AND role = 'patient'
       LIMIT 1
@@ -213,6 +213,11 @@ export async function fetchPatientDashboardData(email: string) {
       WHERE patient_email = ${email}
     `;
 
+    const [unreadNotifications, medicalRecordCount] = await Promise.all([
+      sql`SELECT COUNT(*)::int AS count FROM notifications WHERE user_email = ${email} AND user_type = 'patient' AND read = FALSE`,
+      sql`SELECT COUNT(*)::int AS count FROM medical_records WHERE patient_email = ${email}`,
+    ]);
+
     const invoices = await sql`
       SELECT invoices.id, invoices.amount, invoices.status, invoices.date
       FROM invoices
@@ -238,10 +243,10 @@ export async function fetchPatientDashboardData(email: string) {
     return {
       patient: patient ?? { name: 'Patient', email },
       careHighlights: [
-        { label: 'Active prescriptions', value: patient ? '3' : '0' },
+        { label: 'Medical records', value: String(medicalRecordCount[0]?.count ?? 0) },
         { label: 'Booked visits', value: String(formattedAppointments.length) },
-        { label: 'Lab results', value: '2 new' },
-        { label: 'Care plan', value: patient ? 'Updated' : 'Pending' },
+        { label: 'Notifications', value: String(unreadNotifications[0]?.count ?? 0) },
+        { label: 'Care plan', value: medicalRecordCount[0]?.count ? 'Available' : 'Pending' },
       ],
       upcomingAppointments: formattedAppointments,
       walletSummary: [
@@ -263,7 +268,7 @@ export async function fetchPatientDashboardData(email: string) {
         status: invoice.status,
         createdDate: String(invoice.date),
       })),
-      unreadNotifications: 0,
+      unreadNotifications: Number(unreadNotifications[0]?.count ?? 0),
       bookingOptions: {
         consultationTypes: consultationTypes.map((type) => ({
           id: type.id,
@@ -312,6 +317,55 @@ export async function fetchPatientDashboardData(email: string) {
   }
 }
 
+export async function fetchPatientProfile(email: string) {
+  const [profile] = await sql`
+    SELECT id, name, email, date_of_birth, phone, national_id, patient_number, pharmacy_preference, avatar_url
+    FROM users WHERE email = ${email} AND role = 'patient' LIMIT 1
+  `;
+  return profile ?? { email, name: 'Patient' };
+}
+
+export async function fetchPatientNotifications(email: string) {
+  return sql`
+    SELECT id, type, message, read, created_at
+    FROM notifications
+    WHERE user_email = ${email} AND user_type = 'patient'
+    ORDER BY created_at DESC
+    LIMIT 50
+  `;
+}
+
+export async function fetchPatientMedicalRecords(email: string) {
+  return sql`
+    SELECT id, record_type, title, summary, status, recorded_at
+    FROM medical_records
+    WHERE patient_email = ${email}
+    ORDER BY recorded_at DESC
+    LIMIT 50
+  `;
+}
+
+export async function fetchStaffQueue() {
+  return sql`
+    SELECT id, patient_email, doctor_name, specialty, appointment_date, appointment_time, reason, status
+    FROM appointments
+    WHERE appointment_date >= CURRENT_DATE AND status NOT IN ('Cancelled', 'Completed')
+    ORDER BY appointment_date, appointment_time
+    LIMIT 100
+  `;
+}
+
+export async function fetchStaffCalendar() {
+  return sql`
+    SELECT doctors.name, doctors.specialty, doctor_availability.day_of_week, doctor_availability.appointment_time
+    FROM doctors
+    JOIN doctor_availability ON doctor_availability.doctor_id = doctors.id
+    WHERE doctors.active = TRUE AND doctor_availability.active = TRUE
+    ORDER BY doctors.name, doctor_availability.day_of_week, doctor_availability.appointment_time
+    LIMIT 500
+  `;
+}
+
 export async function probePatientDashboardData(emailPresent: boolean) {
   const result: {
     invoiceColumns: string[];
@@ -345,14 +399,8 @@ export async function probePatientDashboardData(emailPresent: boolean) {
     result.userColumns = cols
       .filter((col) => col.table_name === 'users')
       .map((col) => col.column_name);
-    // #region agent log
-    fetch('http://127.0.0.1:7826/ingest/f67fa5db-0508-44bf-803c-d13bfd7999ec',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d5deb'},body:JSON.stringify({sessionId:'7d5deb',runId:'pre-fix',hypothesisId:'A',location:'app/lib/data.ts:probePatientDashboardData',message:'schema columns',data:{invoiceColumns:result.invoiceColumns,customerColumns:result.customerColumns,userColumns:result.userColumns,emailPresent},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
   } catch (error) {
     const err = error as { message?: string; code?: string };
-    // #region agent log
-    fetch('http://127.0.0.1:7826/ingest/f67fa5db-0508-44bf-803c-d13bfd7999ec',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d5deb'},body:JSON.stringify({sessionId:'7d5deb',runId:'pre-fix',hypothesisId:'A',location:'app/lib/data.ts:probePatientDashboardData',message:'schema probe failed',data:{message:err.message,code:err.code},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
   }
 
   const tryQuery = async (
@@ -362,15 +410,9 @@ export async function probePatientDashboardData(emailPresent: boolean) {
   ) => {
     try {
       await query();
-      // #region agent log
-      fetch('http://127.0.0.1:7826/ingest/f67fa5db-0508-44bf-803c-d13bfd7999ec',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d5deb'},body:JSON.stringify({sessionId:'7d5deb',runId:'pre-fix',hypothesisId,location:'app/lib/data.ts:tryQuery',message:'query ok',data:{label},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       return 'ok';
     } catch (error) {
       const err = error as { message?: string; code?: string; position?: string };
-      // #region agent log
-      fetch('http://127.0.0.1:7826/ingest/f67fa5db-0508-44bf-803c-d13bfd7999ec',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d5deb'},body:JSON.stringify({sessionId:'7d5deb',runId:'pre-fix',hypothesisId,location:'app/lib/data.ts:tryQuery',message:'query failed',data:{label,message:err.message,code:err.code,position:err.position},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       return `${err.code}:${err.message}:pos=${err.position}`;
     }
   };

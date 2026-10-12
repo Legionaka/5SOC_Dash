@@ -7,6 +7,28 @@ import { z } from 'zod';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
+async function recordPatientAudit(email: string, action: string, entityType: string, entityId?: string, metadata: Record<string, unknown> = {}) {
+  try {
+    await sql`
+      INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata)
+      VALUES (${email}, 'patient', ${action}, ${entityType}, ${entityId ?? null}, ${sql.json(metadata as any)})
+    `;
+  } catch (error) {
+    console.error('Audit log unavailable:', error);
+  }
+}
+
+async function notifyPatient(email: string, type: string, message: string) {
+  try {
+    await sql`
+      INSERT INTO notifications (user_email, user_type, type, message)
+      VALUES (${email}, 'patient', ${type}, ${message})
+    `;
+  } catch (error) {
+    console.error('Patient notification unavailable:', error);
+  }
+}
+
 const BookingSchema = z.object({
   consultationType: z.string().min(1),
   doctor: z.string().min(1),
@@ -23,6 +45,51 @@ const RescheduleSchema = z.object({
   appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   appointmentTime: z.string().min(1),
 });
+
+const ProfileSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  dateOfBirth: z.string().optional(),
+  phone: z.string().trim().max(40).optional(),
+  nationalId: z.string().trim().max(80).optional(),
+  pharmacyPreference: z.string().trim().max(120).optional(),
+});
+
+export async function updatePatientProfile(input: z.infer<typeof ProfileSchema>) {
+  const session = await auth();
+  const email = session?.user.email;
+  if (!email || session.user.role !== 'patient') return { success: false, message: 'You are not authorized to update this profile.' };
+  const validated = ProfileSchema.safeParse(input);
+  if (!validated.success) return { success: false, message: 'Please check the profile details.' };
+  try {
+    await sql`
+      UPDATE users
+      SET name = ${validated.data.name}, date_of_birth = ${validated.data.dateOfBirth || null},
+          phone = ${validated.data.phone || null}, national_id = ${validated.data.nationalId || null},
+          pharmacy_preference = ${validated.data.pharmacyPreference || null}
+      WHERE email = ${email} AND role = 'patient'
+    `;
+    revalidatePath('/dashboard/user');
+    revalidatePath('/dashboard/user/profile');
+    await recordPatientAudit(email, 'profile.updated', 'patient', undefined, { fields: Object.keys(validated.data) });
+    await notifyPatient(email, 'profile_updated', 'Your patient profile was updated successfully.');
+    return { success: true, message: 'Profile updated.' };
+  } catch (error) {
+    console.error('Failed to update patient profile:', error);
+    return { success: false, message: 'We could not update your profile.' };
+  }
+}
+
+export async function markPatientNotificationRead(notificationId: string) {
+  const session = await auth();
+  const email = session?.user.email;
+  if (!email || session.user.role !== 'patient' || !z.string().uuid().safeParse(notificationId).success) {
+    return { success: false, message: 'Unable to update notification.' };
+  }
+  await sql`UPDATE notifications SET read = TRUE WHERE id = ${notificationId} AND user_email = ${email} AND user_type = 'patient'`;
+  revalidatePath('/dashboard/user');
+  revalidatePath('/dashboard/user/notifications');
+  return { success: true, message: 'Notification marked as read.' };
+}
 
 export async function bookPatientAppointment(input: BookingInput) {
   const session = await auth();
@@ -135,6 +202,8 @@ export async function bookPatientAppointment(input: BookingInput) {
     });
 
     if (result.success) {
+      await recordPatientAudit(email, 'appointment.created', 'appointment', undefined, { appointmentDate, appointmentTime, doctor });
+      await notifyPatient(email, 'appointment_created', `Your appointment request for ${appointmentDate} at ${appointmentTime} was saved.`);
       revalidatePath('/dashboard/user');
     }
 
@@ -201,7 +270,11 @@ export async function reschedulePatientAppointment(input: z.infer<typeof Resched
       `;
       return { success: true, message: 'Appointment rescheduled.' };
     });
-    if (result.success) revalidatePath('/dashboard/user');
+    if (result.success) {
+      await recordPatientAudit(email, 'appointment.rescheduled', 'appointment', appointmentId, { appointmentDate, appointmentTime });
+      await notifyPatient(email, 'appointment_rescheduled', `Your appointment was rescheduled to ${appointmentDate} at ${appointmentTime}.`);
+      revalidatePath('/dashboard/user');
+    }
     return result;
   } catch (error) {
     console.error('Failed to reschedule patient appointment:', error);
@@ -243,7 +316,11 @@ export async function cancelPatientAppointment(appointmentId: string) {
       }
       return { success: true, message: 'Appointment cancelled and refund added to your wallet.' };
     });
-    if (result.success) revalidatePath('/dashboard/user');
+    if (result.success) {
+      await recordPatientAudit(email, 'appointment.cancelled', 'appointment', appointmentId);
+      await notifyPatient(email, 'appointment_cancelled', 'Your appointment was cancelled. Any eligible refund was added to your wallet.');
+      revalidatePath('/dashboard/user');
+    }
     return result;
   } catch (error) {
     console.error('Failed to cancel patient appointment:', error);
@@ -263,6 +340,8 @@ export async function requestWalletFunds(amountCents: number) {
       INSERT INTO wallet_transactions (patient_email, amount, status, description)
       VALUES (${email}, ${amountCents}, 'pending', 'Wallet funding request pending payment')
     `;
+    await recordPatientAudit(email, 'wallet.funding_requested', 'wallet_transaction', undefined, { amountCents });
+    await notifyPatient(email, 'wallet_pending', 'Your wallet funding request is pending payment confirmation.');
     revalidatePath('/dashboard/user');
     return { success: true, message: 'Funding request created and marked pending payment.' };
   } catch (error) {
@@ -300,6 +379,8 @@ export async function requestWalletRefund(transactionId: string, reason: string)
       INSERT INTO refund_requests (patient_email, wallet_transaction_id, reason)
       VALUES (${email}, ${transactionId}, ${reason.trim()})
     `;
+    await recordPatientAudit(email, 'wallet.refund_requested', 'wallet_transaction', transactionId, { reason: reason.trim() });
+    await notifyPatient(email, 'refund_requested', 'Your refund request was submitted for staff review.');
     revalidatePath('/dashboard/user');
     return { success: true, message: 'Refund request submitted for staff review.' };
   } catch (error) {

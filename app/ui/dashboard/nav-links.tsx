@@ -3,10 +3,16 @@
 import {
   ArchiveBoxIcon,
   BeakerIcon,
+  BellAlertIcon,
+  CalendarDaysIcon,
   ClipboardDocumentListIcon,
   ComputerDesktopIcon,
   DocumentDuplicateIcon,
+  HeartIcon,
   HomeIcon,
+  IdentificationIcon,
+  RectangleStackIcon,
+  WalletIcon,
   UserGroupIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
@@ -22,50 +28,50 @@ type NavItem = {
   exact?: boolean;
 };
 
-const LINKS_BY_ROLE: Partial<Record<UserRole, NavItem[]>> = {
+type NavSection = { name: string; items: NavItem[] };
+
+const LINKS_BY_ROLE: Partial<Record<UserRole, NavSection[]>> = {
   admin: [
-    { name: 'Home', href: '/dashboard', icon: HomeIcon, exact: true },
-    {
-      name: 'Invoices',
-      href: '/dashboard/invoices',
-      icon: DocumentDuplicateIcon,
-    },
-    {
-      name: 'Customers',
-      href: '/dashboard/customers',
-      icon: UserGroupIcon,
-    },
+    { name: 'Overview', items: [{ name: 'Home', href: '/dashboard', icon: HomeIcon, exact: true }] },
+    { name: 'Operations', items: [
+      { name: 'Patients', href: '/dashboard/customers', icon: UserGroupIcon },
+      { name: 'Invoices', href: '/dashboard/invoices', icon: DocumentDuplicateIcon },
+      { name: 'Queue', href: '/dashboard/queue', icon: RectangleStackIcon },
+      { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarDaysIcon },
+    ] },
   ],
   patient: [
-    { name: 'Patient Portal', href: '/dashboard/user', icon: UserIcon },
+    { name: 'My care', items: [
+      { name: 'Overview', href: '/dashboard/user', icon: HomeIcon, exact: true },
+      { name: 'Appointments', href: '/dashboard/user/appointments', icon: CalendarDaysIcon },
+      { name: 'Medical records', href: '/dashboard/user/records', icon: HeartIcon },
+    ] },
+    { name: 'Billing & account', items: [
+      { name: 'Wallet', href: '/dashboard/user/wallet', icon: WalletIcon },
+      { name: 'Invoices', href: '/dashboard/user/invoices', icon: DocumentDuplicateIcon },
+      { name: 'Notifications', href: '/dashboard/user/notifications', icon: BellAlertIcon },
+      { name: 'Profile', href: '/dashboard/user/profile', icon: IdentificationIcon },
+    ] },
   ],
   doctor: [
-    {
-      name: 'Doctor Workspace',
-      href: '/dashboard/doctor',
-      icon: ClipboardDocumentListIcon,
-    },
+    { name: 'Clinical', items: [
+      { name: 'Workspace', href: '/dashboard/doctor', icon: ClipboardDocumentListIcon },
+      { name: 'Queue', href: '/dashboard/queue', icon: RectangleStackIcon },
+      { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarDaysIcon },
+    ] },
   ],
   pharmacy_reception: [
-    {
-      name: 'Front Desk',
-      href: '/dashboard/pharmacy/reception',
-      icon: ComputerDesktopIcon,
-    },
+    { name: 'Front desk', items: [
+      { name: 'Workspace', href: '/dashboard/pharmacy/reception', icon: ComputerDesktopIcon },
+      { name: 'Queue', href: '/dashboard/queue', icon: RectangleStackIcon },
+      { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarDaysIcon },
+    ] },
   ],
   pharmacy_stocker: [
-    {
-      name: 'Pharmacy Stock',
-      href: '/dashboard/pharmacy/stock',
-      icon: ArchiveBoxIcon,
-    },
+    { name: 'Inventory', items: [{ name: 'Pharmacy stock', href: '/dashboard/pharmacy/stock', icon: ArchiveBoxIcon }] },
   ],
   pharmacist: [
-    {
-      name: 'Pharmacist Workspace',
-      href: '/dashboard/pharmacy/pharmacist',
-      icon: BeakerIcon,
-    },
+    { name: 'Pharmacy', items: [{ name: 'Workspace', href: '/dashboard/pharmacy/pharmacist', icon: BeakerIcon }] },
   ],
 };
 
@@ -77,11 +83,16 @@ export default function NavLinks({
   collapsed?: boolean;
 }) {
   const pathname = usePathname();
-  const links = (role && LINKS_BY_ROLE[role]) || [];
+  const sections = (role && LINKS_BY_ROLE[role]) || [];
 
   return (
     <>
-      {links.map((link) => {
+      {sections.map((section) => (
+        <div key={section.name} className="flex min-w-max flex-col gap-1 md:min-w-0">
+          <p className={clsx('px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400', collapsed && 'md:hidden')}>
+            {section.name}
+          </p>
+          {section.items.map((link) => {
         const LinkIcon = link.icon;
         const isActive = link.exact
           ? pathname === link.href
@@ -109,8 +120,10 @@ export default function NavLinks({
               {link.name}
             </span>
           </Link>
-        );
-      })}
+          );
+          })}
+        </div>
+      ))}
     </>
   );
 }

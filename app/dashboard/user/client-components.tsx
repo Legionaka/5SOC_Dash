@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   bookPatientAppointment,
   cancelPatientAppointment,
@@ -687,9 +688,9 @@ export function PatientInvoicesSection({ invoices }: { invoices: any[] }) {
         )}
       </div>
 
-      <button className="mt-4 w-full rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 transition">
+      <Link href="/dashboard/user/invoices" className="mt-4 block w-full rounded-lg bg-slate-900 px-3 py-2 text-center text-xs font-medium text-white hover:bg-slate-800 transition">
         View All Invoices
-      </button>
+      </Link>
     </section>
   );
 }
@@ -711,8 +712,9 @@ export function PatientSupportSection({ supportChannels }: { supportChannels: Su
         {supportChannels.map((option) => {
           const Icon = SUPPORT_ICONS[option.type as keyof typeof SUPPORT_ICONS] ?? HeartIcon;
           return (
-            <button
+            <a
               key={option.title}
+              href={option.type === 'phone' ? `tel:${option.detail.replace(/[^+\d]/g, '')}` : option.type === 'website' ? 'mailto:support@mediclinic.example' : '/dashboard/user/appointments'}
               className="rounded-xl border border-slate-200 bg-slate-50 p-4 hover:border-slate-300 hover:bg-white transition text-left"
             >
               <div className="rounded-lg bg-indigo-100 p-2 w-fit mb-3 text-indigo-700">
@@ -720,7 +722,7 @@ export function PatientSupportSection({ supportChannels }: { supportChannels: Su
               </div>
               <p className="font-semibold text-slate-900">{option.title}</p>
               <p className="text-sm text-slate-600 mt-1">{option.detail}</p>
-            </button>
+            </a>
           );
         })}
       </div>
