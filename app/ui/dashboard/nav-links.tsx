@@ -39,6 +39,11 @@ const LINKS_BY_ROLE: Partial<Record<UserRole, NavSection[]>> = {
       { name: 'Invoices', href: '/dashboard/invoices', icon: DocumentDuplicateIcon },
       { name: 'Queue', href: '/dashboard/queue', icon: RectangleStackIcon },
       { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarDaysIcon },
+      { name: 'Patient charts', href: '/dashboard/doctor/patients', icon: UserIcon },
+      { name: 'Results', href: '/dashboard/doctor/results', icon: BeakerIcon },
+      { name: 'Prescriptions & referrals', href: '/dashboard/doctor/orders', icon: DocumentDuplicateIcon },
+      { name: 'Clinical notes', href: '/dashboard/doctor/notes', icon: DocumentDuplicateIcon },
+      { name: 'Availability', href: '/dashboard/doctor/availability', icon: CalendarDaysIcon },
       { name: 'Patient messages', href: '/dashboard/doctor/requests', icon: ChatBubbleLeftRightIcon },
     ] },
   ],
@@ -60,6 +65,11 @@ const LINKS_BY_ROLE: Partial<Record<UserRole, NavSection[]>> = {
       { name: 'Workspace', href: '/dashboard/doctor', icon: ClipboardDocumentListIcon },
       { name: 'Queue', href: '/dashboard/queue', icon: RectangleStackIcon },
       { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarDaysIcon },
+      { name: 'Patient charts', href: '/dashboard/doctor/patients', icon: UserIcon },
+      { name: 'Results', href: '/dashboard/doctor/results', icon: BeakerIcon },
+      { name: 'Prescriptions & referrals', href: '/dashboard/doctor/orders', icon: DocumentDuplicateIcon },
+      { name: 'Clinical notes', href: '/dashboard/doctor/notes', icon: DocumentDuplicateIcon },
+      { name: 'Availability', href: '/dashboard/doctor/availability', icon: CalendarDaysIcon },
       { name: 'Patient messages', href: '/dashboard/doctor/requests', icon: ChatBubbleLeftRightIcon },
     ] },
   ],
@@ -74,7 +84,7 @@ const LINKS_BY_ROLE: Partial<Record<UserRole, NavSection[]>> = {
     { name: 'Inventory', items: [{ name: 'Pharmacy stock', href: '/dashboard/pharmacy/stock', icon: ArchiveBoxIcon }] },
   ],
   pharmacist: [
-    { name: 'Pharmacy', items: [{ name: 'Workspace', href: '/dashboard/pharmacy/pharmacist', icon: BeakerIcon }] },
+    { name: 'Pharmacy', items: [{ name: 'Prescription queue', href: '/dashboard/pharmacy/pharmacist', icon: BeakerIcon }] },
   ],
 };
 

@@ -56,7 +56,7 @@ export default function NotificationList({ notifications }: { notifications: Not
               <p className="mt-1 text-sm text-slate-600">{unreadCount ? `${unreadCount} update${unreadCount === 1 ? '' : 's'} need your attention.` : 'You are all caught up.'}</p>
             </div>
           </div>
-          <button type="button" onClick={markAllRead} disabled={!unreadCount || isUpdating} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-teal-300 hover:text-teal-800 disabled:cursor-not-allowed disabled:opacity-40">Mark all read</button>
+          <button type="button" onClick={markAllRead} disabled={!unreadCount || isUpdating} className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-teal-300 hover:text-teal-800 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">Mark all read</button>
         </div>
         <div className="mt-5 flex gap-2" role="tablist" aria-label="Notification filters">
           {filters.map((item) => <button key={item.id} type="button" role="tab" aria-selected={filter === item.id} onClick={() => setFilter(item.id)} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === item.id ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 ring-1 ring-inset ring-slate-200 hover:ring-teal-300'}`}>{item.label}{item.id === 'unread' && unreadCount > 0 ? ` ${unreadCount}` : ''}</button>)}
@@ -66,10 +66,10 @@ export default function NotificationList({ notifications }: { notifications: Not
       <div className="divide-y divide-slate-100">
         {visibleItems.length === 0 ? <div className="p-10 text-center"><CheckCircleIcon className="mx-auto h-10 w-10 text-emerald-500" /><p className="mt-3 font-medium text-slate-900">Nothing new here</p><p className="mt-1 text-sm text-slate-500">New appointment, billing, and care updates will appear here.</p></div> : visibleItems.map((item) => {
           const Icon = notificationIcon(item.type);
-          return <article key={item.id} className={`flex gap-4 p-5 transition sm:p-6 ${item.read ? 'bg-white' : 'bg-teal-50/50'}`}>
-            <div className={`mt-0.5 rounded-2xl p-2.5 ${item.read ? 'bg-slate-100 text-slate-500' : 'bg-teal-100 text-teal-700'}`}><Icon className="h-5 w-5" /></div>
-            <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-700">{item.type.replaceAll('_', ' ')}</p>{!item.read && <span className="h-2 w-2 rounded-full bg-teal-500" aria-label="Unread" />}</div><p className="mt-2 text-sm leading-6 text-slate-700">{item.message}</p><p className="mt-2 text-xs text-slate-400">{formatDate(item.created_at)}</p></div>
-            {!item.read && <button type="button" onClick={() => markRead(item.id)} disabled={isUpdating} className="self-start whitespace-nowrap text-xs font-semibold text-teal-700 hover:text-teal-950 disabled:opacity-50">Mark read</button>}
+          return <article key={item.id} className={`flex flex-col gap-3 p-4 transition min-[420px]:flex-row min-[420px]:gap-4 sm:p-6 ${item.read ? 'bg-white' : 'bg-teal-50/50'}`}>
+            <div className={`w-fit shrink-0 rounded-2xl p-2.5 min-[420px]:mt-0.5 ${item.read ? 'bg-slate-100 text-slate-500' : 'bg-teal-100 text-teal-700'}`}><Icon className="h-5 w-5" /></div>
+            <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="break-words text-xs font-bold uppercase tracking-[0.14em] text-teal-700">{item.type.replaceAll('_', ' ')}</p>{!item.read && <span className="h-2 w-2 rounded-full bg-teal-500" aria-label="Unread" />}</div><p className="mt-2 break-words text-sm leading-6 text-slate-700">{item.message}</p><p className="mt-2 text-xs text-slate-400">{formatDate(item.created_at)}</p></div>
+            {!item.read && <button type="button" onClick={() => markRead(item.id)} disabled={isUpdating} className="min-h-11 self-start whitespace-nowrap px-1 text-xs font-semibold text-teal-700 hover:text-teal-950 disabled:opacity-50">Mark read</button>}
           </article>;
         })}
       </div>

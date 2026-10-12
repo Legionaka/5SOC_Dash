@@ -171,23 +171,23 @@ export function AppointmentBookingModal({ isOpen, onClose, bookingOptions }: { i
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-2 sm:items-center sm:p-4">
+      <div className="my-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:max-h-[calc(100dvh-2rem)]">
         {/* Header */}
-        <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-          <h2 className={`${lusitana.className} text-xl font-bold text-slate-900`}>
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
+          <h2 className={`${lusitana.className} min-w-0 text-lg font-bold text-slate-900 sm:text-xl`}>
             Book a New Appointment
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6 max-h-96 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
           {step === 1 && (
             <div className="space-y-4">
               <div>
@@ -224,7 +224,7 @@ export function AppointmentBookingModal({ isOpen, onClose, bookingOptions }: { i
                 <select
                   value={selectedSpecialty}
                   onChange={(e) => setSelectedSpecialty(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
+                  className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="">Choose a specialty...</option>
                   {Array.from(new Set(bookingOptions.doctors.map((doctor) => doctor.specialty))).map((specialty) => (
@@ -269,7 +269,7 @@ export function AppointmentBookingModal({ isOpen, onClose, bookingOptions }: { i
                   type="date"
                   value={appointmentDate}
                   onChange={(e) => setAppointmentDate(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
+                  className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-teal-500 focus:ring-2 focus:ring-teal-500"
                 />
               </div>
 
@@ -286,7 +286,7 @@ export function AppointmentBookingModal({ isOpen, onClose, bookingOptions }: { i
                     <button
                       key={time}
                       onClick={() => setSelectedTime(time)}
-                      className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${
+                      className={`min-h-11 rounded-lg border-2 px-3 py-2 text-sm font-medium transition ${
                         selectedTime === time
                           ? 'border-teal-500 bg-teal-50 text-teal-900'
                           : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-teal-500'
@@ -319,7 +319,7 @@ export function AppointmentBookingModal({ isOpen, onClose, bookingOptions }: { i
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 bg-slate-50 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-6 sm:py-4">
           <button
             onClick={() => setStep(Math.max(1, step - 1))}
             className={`px-4 py-2 text-sm font-medium ${
@@ -397,8 +397,8 @@ function RescheduleModal({ appointment, bookingOptions, onClose }: { appointment
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-2 sm:items-center sm:p-4">
+      <div className="my-auto max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:max-h-[calc(100dvh-2rem)] sm:p-6">
         <div className="mb-5 flex items-center justify-between">
           <h2 className={`${lusitana.className} text-xl font-bold text-slate-900`}>Reschedule appointment</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700" aria-label="Close reschedule dialog"><XMarkIcon className="h-5 w-5" /></button>
@@ -408,7 +408,7 @@ function RescheduleModal({ appointment, bookingOptions, onClose }: { appointment
         ) : (
           <div className="space-y-4">
             <label className="block text-sm font-medium text-slate-700">New date
-              <input type="date" value={date} onChange={(event) => { setDate(event.target.value); setTime(''); }} min={new Date().toISOString().slice(0, 10)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+              <input type="date" value={date} onChange={(event) => { setDate(event.target.value); setTime(''); }} min={new Date().toISOString().slice(0, 10)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2" />
             </label>
             <div>
               <p className="mb-2 text-sm font-medium text-slate-700">Available times</p>
@@ -445,8 +445,8 @@ export function PatientAppointmentsSection({ appointments, bookingOptions }: { a
 
   return (
     <>
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex items-center justify-between">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-sky-100 p-2 text-sky-700">
               <CalendarDaysIcon className="h-5 w-5" />
@@ -458,7 +458,7 @@ export function PatientAppointmentsSection({ appointments, bookingOptions }: { a
           </div>
           <button
             onClick={() => setIsBookingOpen(true)}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 transition"
+            className="min-h-11 w-full rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700 sm:w-auto"
           >
             Book New Visit
           </button>
@@ -514,11 +514,11 @@ export function PatientAppointmentsSection({ appointments, bookingOptions }: { a
                   <p className="mt-1 text-xs leading-5 text-teal-800">Bring your ID and insurance details, arrive a little early, and note any questions or medicines you want to discuss. Contact the clinic if you need directions or accessibility support.</p>
                 </div>
 
-                <div className="mt-4 flex gap-2">
-                  <button onClick={() => setReschedulingAppointment(appointment)} className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <button onClick={() => setReschedulingAppointment(appointment)} className="min-h-11 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                     Reschedule
                   </button>
-                  <button onClick={() => cancelAppointment(appointment.id)} disabled={cancellingId === appointment.id} className="flex-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 transition disabled:opacity-50">
+                  <button onClick={() => cancelAppointment(appointment.id)} disabled={cancellingId === appointment.id} className="min-h-11 flex-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-50">
                     {cancellingId === appointment.id ? 'Cancelling...' : 'Cancel & Refund'}
                   </button>
                 </div>
@@ -572,7 +572,7 @@ export function PatientWalletSection({ walletSummary, transactions }: { walletSu
   };
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="mb-6 flex items-center gap-3">
         <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700">
           <WalletIcon className="h-5 w-5" />
@@ -583,7 +583,7 @@ export function PatientWalletSection({ walletSummary, transactions }: { walletSu
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
         {walletSummary.map((item) => (
           <div key={item.label} className="rounded-xl bg-slate-50 p-4 border border-slate-200">
             <p className="text-xs text-slate-600 mb-1">{item.label}</p>
@@ -611,12 +611,12 @@ export function PatientWalletSection({ walletSummary, transactions }: { walletSu
             <p className="text-xs text-slate-500 text-center py-4">No transactions yet</p>
           ) : (
             transactions.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs">
-                <div className="flex-1">
+              <div key={tx.id} className="flex flex-col gap-2 rounded-lg bg-slate-50 p-3 text-xs min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+                <div className="min-w-0 flex-1 break-words">
                   <p className="font-medium text-slate-900">{tx.description}</p>
                   <p className="text-slate-500">{tx.date}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="font-semibold text-slate-900">{tx.amount}</p>
                   <TransactionStatusBadge status={tx.status} />
                 </div>
@@ -626,11 +626,11 @@ export function PatientWalletSection({ walletSummary, transactions }: { walletSu
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <button onClick={() => { setIsFunding((current) => !current); setWalletMessage(null); }} className="flex-1 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition">
+      <div className="flex flex-col gap-2 min-[420px]:flex-row">
+        <button onClick={() => { setIsFunding((current) => !current); setWalletMessage(null); }} className="min-h-11 flex-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100">
           Add Funds
         </button>
-        <button onClick={() => { setIsRefunding((current) => !current); setWalletMessage(null); }} className="flex-1 rounded-lg bg-slate-50 border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition">
+        <button onClick={() => { setIsRefunding((current) => !current); setWalletMessage(null); }} className="min-h-11 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
           Request Refund
         </button>
       </div>
@@ -661,7 +661,7 @@ export function PatientWalletSection({ walletSummary, transactions }: { walletSu
 
 export function PatientInvoicesSection({ invoices }: { invoices: any[] }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="mb-4 flex items-center gap-3">
         <div className="rounded-xl bg-rose-100 p-2 text-rose-700">
           <DocumentTextIcon className="h-5 w-5" />
@@ -679,7 +679,7 @@ export function PatientInvoicesSection({ invoices }: { invoices: any[] }) {
           </div>
         ) : (
           invoices.map((invoice) => (
-            <div key={invoice.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 text-xs hover:bg-slate-100 transition cursor-pointer">
+            <div key={invoice.id} className="flex items-start justify-between gap-2 rounded-lg bg-slate-50 p-3 text-xs transition hover:bg-slate-100">
               <div>
                 <p className="font-medium text-slate-900">INV-{invoice.id.substring(0, 8)}</p>
                 <p className="text-slate-500">{invoice.createdDate}</p>
@@ -702,7 +702,7 @@ export function PatientInvoicesSection({ invoices }: { invoices: any[] }) {
 
 export function PatientSupportSection({ supportChannels }: { supportChannels: SupportChannel[] }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="mb-6 flex items-center gap-3">
         <div className="rounded-xl bg-indigo-100 p-2 text-indigo-700">
           <HeartIcon className="h-5 w-5" />

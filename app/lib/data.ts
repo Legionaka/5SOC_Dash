@@ -418,10 +418,12 @@ export async function fetchPatientMedicalRecords(email: string) {
 
 export async function fetchStaffQueue() {
   return sql`
-    SELECT id, patient_email, doctor_name, specialty, appointment_date, appointment_time, reason, status
-    FROM appointments
-    WHERE appointment_date >= CURRENT_DATE AND status NOT IN ('Cancelled', 'Completed')
-    ORDER BY appointment_date, appointment_time
+    SELECT a.id, a.patient_email, COALESCE(u.name, a.patient_email) AS patient_name,
+      a.doctor_name, a.specialty, a.appointment_date, a.appointment_time,
+      a.reason, a.status, a.check_in_status
+    FROM appointments a LEFT JOIN users u ON u.email = a.patient_email
+    WHERE a.appointment_date >= CURRENT_DATE AND a.status NOT IN ('Cancelled', 'Rejected', 'Completed')
+    ORDER BY a.appointment_date, a.appointment_time
     LIMIT 100
   `;
 }
@@ -434,6 +436,182 @@ export async function fetchStaffCalendar() {
     WHERE doctors.active = TRUE AND doctor_availability.active = TRUE
     ORDER BY doctors.name, doctor_availability.day_of_week, doctor_availability.appointment_time
     LIMIT 500
+  `;
+}
+
+export async function fetchDoctorDashboardData(email: string, name: string, isAdmin: boolean) {
+  const appointments = await sql`
+    SELECT a.id, a.patient_email, COALESCE(u.name, a.patient_email) AS patient_name,
+      a.doctor_name, a.specialty, a.appointment_date, a.appointment_time, a.reason,
+      a.status, a.check_in_status
+    FROM appointments a
+    LEFT JOIN users u ON u.email = a.patient_email
+    WHERE a.appointment_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
+      AND a.status NOT IN ('Cancelled', 'Rejected', 'Completed')
+      ${isAdmin ? sql`` : sql`AND a.doctor_name = ${name}`}
+    ORDER BY a.appointment_date, a.appointment_time LIMIT 100
+  `;
+  const [pendingResults] = await sql`
+    SELECT COUNT(*)::int AS count FROM diagnostic_results
+    WHERE status = 'Pending' AND (${isAdmin} OR doctor_email = ${email})
+  `;
+  const [criticalResults] = await sql`
+    SELECT COUNT(*)::int AS count FROM diagnostic_results
+    WHERE priority = 'critical' AND status = 'Pending' AND (${isAdmin} OR doctor_email = ${email})
+  `;
+  const [openTasks] = await sql`
+    SELECT COUNT(*)::int AS count FROM patient_requests
+    WHERE status = 'Open' AND request_type IN ('prescription_refill', 'appointment_change', 'question')
+  `;
+  const [patients] = await sql`
+    SELECT COUNT(DISTINCT patient_email)::int AS count FROM appointments
+    WHERE (${isAdmin} OR doctor_name = ${name})
+  `;
+  const activeBlocks = await sql`
+    SELECT id, block_date, start_time, end_time, reason
+    FROM doctor_schedule_blocks
+    WHERE active = TRUE AND block_date >= CURRENT_DATE AND (${isAdmin} OR doctor_email = ${email})
+    ORDER BY block_date, start_time LIMIT 10
+  `;
+  return {
+    appointments: appointments.map((item) => ({
+      id: String(item.id), patientEmail: String(item.patient_email), patientName: String(item.patient_name),
+      doctor: String(item.doctor_name), specialty: String(item.specialty), date: String(item.appointment_date),
+      time: String(item.appointment_time), reason: String(item.reason), status: String(item.status),
+      checkInStatus: String(item.check_in_status ?? 'Not checked in'),
+    })),
+    pendingResults: Number(pendingResults?.count ?? 0),
+    criticalResults: Number(criticalResults?.count ?? 0),
+    openTasks: Number(openTasks?.count ?? 0),
+    patientCount: Number(patients?.count ?? 0),
+    blocks: activeBlocks.map((item) => ({ id: String(item.id), date: String(item.block_date), start: String(item.start_time), end: String(item.end_time), reason: String(item.reason) })),
+  };
+}
+
+export async function fetchDoctorPatients(doctorName: string, isAdmin: boolean) {
+  return sql`
+    SELECT u.email, u.name, u.date_of_birth, u.patient_number,
+      MAX(a.appointment_date) AS last_visit, COUNT(a.id)::int AS visit_count
+    FROM appointments a
+    JOIN users u ON u.email = a.patient_email AND u.role = 'patient'
+    WHERE (${isAdmin} OR a.doctor_name = ${doctorName})
+    GROUP BY u.email, u.name, u.date_of_birth, u.patient_number
+    ORDER BY MAX(a.appointment_date) DESC NULLS LAST LIMIT 200
+  `;
+}
+
+export async function fetchDoctorActionAppointments(doctorName: string, isAdmin: boolean) {
+  return sql`
+    SELECT a.id, a.patient_email, COALESCE(u.name, a.patient_email) AS patient_name,
+      a.appointment_date, a.reason
+    FROM appointments a LEFT JOIN users u ON u.email = a.patient_email
+    WHERE a.appointment_date <= CURRENT_DATE + INTERVAL '7 days'
+      AND a.status NOT IN ('Cancelled', 'Rejected')
+      AND (${isAdmin} OR a.doctor_name = ${doctorName})
+    ORDER BY a.appointment_date DESC, a.appointment_time DESC LIMIT 100
+  `;
+}
+
+export async function fetchDoctorPatientChart(email: string) {
+  const [patient] = await sql`SELECT email, name, date_of_birth, phone, patient_number FROM users WHERE email = ${email} AND role = 'patient' LIMIT 1`;
+  if (!patient) return null;
+  const [appointments, items, results, notes, medicalRecords, prescriptions, referrals] = await Promise.all([
+    sql`SELECT id, doctor_name, specialty, appointment_date, appointment_time, reason, status, check_in_status FROM appointments WHERE patient_email = ${email} ORDER BY appointment_date DESC, appointment_time DESC LIMIT 30`,
+    sql`SELECT id, item_type, item_name, details, status, created_at FROM patient_clinical_items WHERE patient_email = ${email} AND archived_at IS NULL ORDER BY created_at DESC LIMIT 100`,
+    sql`SELECT id, test_name, result_summary, source_system, priority, status, released_at, created_at, reviewed_at FROM diagnostic_results WHERE patient_email = ${email} ORDER BY created_at DESC LIMIT 50`,
+    sql`SELECT id, appointment_id, doctor_email, title, content, status, addendum_to, created_at, signed_at FROM clinical_notes WHERE patient_email = ${email} ORDER BY created_at DESC LIMIT 50`,
+    sql`SELECT id, record_type, title, summary, status, recorded_at FROM medical_records WHERE patient_email = ${email} ORDER BY recorded_at DESC LIMIT 50`,
+    sql`SELECT id, medication_name, strength, directions, quantity, refills, pharmacy, status, pharmacist_note, created_at FROM prescriptions WHERE patient_email = ${email} ORDER BY created_at DESC LIMIT 100`,
+    sql`SELECT id, specialty, destination, reason, urgency, status, created_at FROM clinical_referrals WHERE patient_email = ${email} AND archived_at IS NULL ORDER BY created_at DESC LIMIT 100`,
+  ]);
+  return { patient, appointments, items, results, notes, medicalRecords, prescriptions, referrals };
+}
+
+export async function fetchDoctorDiagnosticResults(email: string, isAdmin: boolean) {
+  return sql`
+    SELECT r.id, r.patient_email, COALESCE(u.name, r.patient_email) AS patient_name,
+      r.appointment_id, r.doctor_email, r.test_name, r.result_summary, r.source_system,
+      r.priority, r.status, r.released_at, r.created_at, r.reviewed_at
+    FROM diagnostic_results r
+    LEFT JOIN users u ON u.email = r.patient_email
+    WHERE (${isAdmin} OR r.doctor_email = ${email} OR (r.doctor_email = 'lab-integration' AND r.status = 'Pending'))
+    ORDER BY CASE WHEN r.priority = 'critical' AND r.status = 'Pending' THEN 0 WHEN r.status = 'Pending' THEN 1 ELSE 2 END, r.created_at DESC
+    LIMIT 200
+  `;
+}
+
+export async function fetchDoctorClinicalNotes(email: string, isAdmin: boolean) {
+  return sql`
+    SELECT n.id, n.patient_email, COALESCE(u.name, n.patient_email) AS patient_name,
+      n.appointment_id, n.doctor_email, n.title, n.content, n.status, n.addendum_to, n.created_at, n.signed_at
+    FROM clinical_notes n LEFT JOIN users u ON u.email = n.patient_email
+    WHERE (${isAdmin} OR n.doctor_email = ${email})
+    ORDER BY n.created_at DESC LIMIT 100
+  `;
+}
+
+export async function fetchDoctorScheduleBlocks(email: string, isAdmin: boolean) {
+  return sql`
+    SELECT id, doctor_name, block_date, start_time, end_time, reason
+    FROM doctor_schedule_blocks
+    WHERE active = TRUE AND block_date >= CURRENT_DATE AND (${isAdmin} OR doctor_email = ${email})
+    ORDER BY block_date, start_time LIMIT 100
+  `;
+}
+
+export async function fetchDoctorPrescriptions(email: string, isAdmin: boolean) {
+  return sql`
+    SELECT p.id, p.patient_email, COALESCE(u.name, p.patient_email) AS patient_name,
+      p.appointment_id, p.doctor_email, p.medication_name, p.strength, p.directions,
+      p.quantity, p.refills, p.pharmacy, p.status, p.pharmacist_note, p.created_at,
+      p.verified_at, p.dispensed_at
+    FROM prescriptions p LEFT JOIN users u ON u.email = p.patient_email
+    WHERE (${isAdmin} OR p.doctor_email = ${email})
+    ORDER BY CASE WHEN p.status = 'Pending verification' THEN 0 ELSE 1 END, p.created_at DESC LIMIT 200
+  `;
+}
+
+export async function fetchPharmacyPrescriptions() {
+  return sql`
+    SELECT p.id, p.patient_email, COALESCE(u.name, p.patient_email) AS patient_name,
+      p.medication_name, p.strength, p.directions, p.quantity, p.refills, p.pharmacy,
+      p.status, p.pharmacist_note, p.created_at,
+      COALESCE((SELECT string_agg(item_name || CASE WHEN details <> '' THEN ': ' || details ELSE '' END, '; ')
+        FROM patient_clinical_items WHERE patient_email = p.patient_email AND item_type = 'allergy' AND status = 'Active'), '') AS active_allergies,
+      COALESCE((SELECT string_agg(item_name || CASE WHEN details <> '' THEN ': ' || details ELSE '' END, '; ')
+        FROM patient_clinical_items WHERE patient_email = p.patient_email AND item_type = 'medication' AND status = 'Active'), '') AS active_medications
+    FROM prescriptions p LEFT JOIN users u ON u.email = p.patient_email
+    WHERE p.status NOT IN ('Voided', 'Dispensed')
+    ORDER BY CASE WHEN p.status = 'Pending verification' THEN 0 WHEN p.status = 'Verified' THEN 1 ELSE 2 END, p.created_at
+    LIMIT 200
+  `;
+}
+
+export async function fetchPatientPrescriptions(email: string) {
+  return sql`
+    SELECT id, medication_name, strength, directions, quantity, refills, pharmacy, status, created_at, dispensed_at
+    FROM prescriptions WHERE patient_email = ${email} AND status <> 'Voided'
+    ORDER BY created_at DESC LIMIT 100
+  `;
+}
+
+export async function fetchClinicalReferrals(email: string, isAdmin: boolean) {
+  return sql`
+    SELECT r.id, r.patient_email, COALESCE(u.name, r.patient_email) AS patient_name,
+      r.appointment_id, r.doctor_email, r.specialty, r.destination, r.reason,
+      r.urgency, r.status, r.created_at, r.approved_at, r.sent_at
+    FROM clinical_referrals r LEFT JOIN users u ON u.email = r.patient_email
+    WHERE r.archived_at IS NULL AND (${isAdmin} OR r.doctor_email = ${email})
+    ORDER BY CASE WHEN r.status = 'Needs approval' THEN 0 ELSE 1 END,
+      CASE WHEN r.urgency = 'urgent' THEN 0 ELSE 1 END, r.created_at DESC LIMIT 200
+  `;
+}
+
+export async function fetchPatientReferrals(email: string) {
+  return sql`
+    SELECT id, specialty, destination, reason, urgency, status, created_at, sent_at
+    FROM clinical_referrals WHERE patient_email = ${email} AND archived_at IS NULL AND status IN ('Sent', 'Completed')
+    ORDER BY created_at DESC LIMIT 100
   `;
 }
 

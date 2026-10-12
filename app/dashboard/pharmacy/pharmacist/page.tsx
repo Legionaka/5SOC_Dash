@@ -1,11 +1,13 @@
-import RoleHome from '@/app/ui/dashboard/role-home';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { fetchPharmacyPrescriptions } from '@/app/lib/data';
+import { PrescriptionStatusButton } from '@/app/dashboard/doctor/doctor-controls';
 
-export default function PharmacistDashboardPage() {
-  return (
-    <RoleHome
-      roles={['admin', 'pharmacist']}
-      title="Pharmacist Workspace"
-      description="Prescription access is available for authorized pharmacists."
-    />
-  );
+export default async function PharmacistDashboardPage() {
+  const session = await auth();
+  if (!session?.user.role || !['admin', 'pharmacist'].includes(session.user.role)) redirect('/unauthorized');
+  const prescriptions = await fetchPharmacyPrescriptions();
+  return <main className="mx-auto w-full max-w-7xl space-y-6 pb-10"><header><p className="text-sm font-medium text-teal-700">Pharmacy workspace</p><h1 className="mt-1 text-2xl font-bold text-slate-900">Prescription verification & dispensing</h1><p className="mt-1 text-sm text-slate-500">Review incoming orders, document verification, and update dispensing progress. The prescriber’s original instructions remain unchanged.</p></header>
+    <section className="space-y-3"><h2 className="text-lg font-semibold text-slate-900">Active orders ({prescriptions.length})</h2>{prescriptions.length ? prescriptions.map((item) => <article key={item.id} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><p className="break-all text-xs font-semibold text-teal-800">{item.patient_name} · {item.patient_email}</p><h3 className="mt-1 break-words font-semibold text-slate-900">{item.medication_name} {item.strength}</h3></div><span className="w-fit rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900">{item.status}</span></div><p className="break-words text-sm text-slate-700">{item.directions} · Quantity {item.quantity} · Refills {item.refills}</p><div className="grid gap-2 sm:grid-cols-2"><p className={`break-words rounded-lg p-3 text-sm ${item.active_allergies ? 'bg-rose-50 text-rose-900' : 'bg-slate-50 text-slate-600'}`}><strong>Active allergies:</strong> {item.active_allergies || 'None recorded'}</p><p className="break-words rounded-lg bg-slate-50 p-3 text-sm text-slate-700"><strong>Active medication entries:</strong> {item.active_medications || 'None recorded'}</p></div><p className="text-xs text-slate-500">Preferred pharmacy: {item.pharmacy || 'Not specified'} · Received {String(item.created_at)}</p>{item.pharmacist_note && <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">Previous verification note: {item.pharmacist_note}</p>}<PrescriptionStatusButton id={String(item.id)} status={String(item.status)} /></article>) : <p className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">No prescription orders need pharmacy action.</p>}</section>
+  </main>;
 }

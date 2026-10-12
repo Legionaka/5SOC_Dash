@@ -1,0 +1,23 @@
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { fetchClinicalReferrals, fetchDoctorActionAppointments, fetchDoctorPrescriptions } from '@/app/lib/data';
+import { PrescriptionForm, PrescriptionStatusButton, ReferralForm, ReferralStatusButton } from '../doctor-controls';
+
+export default async function DoctorOrdersPage() {
+  const session = await auth();
+  if (!session?.user.email || !session.user.role || !['admin', 'doctor'].includes(session.user.role)) redirect('/unauthorized');
+  const admin = session.user.role === 'admin';
+  const [appointments, prescriptions, referrals] = await Promise.all([
+    fetchDoctorActionAppointments(session.user.name ?? '', admin),
+    fetchDoctorPrescriptions(session.user.email, admin),
+    fetchClinicalReferrals(session.user.email, admin),
+  ]);
+  const options = appointments.map((item) => ({ id: String(item.id), patientEmail: String(item.patient_email), patientName: String(item.patient_name), date: String(item.appointment_date), reason: String(item.reason) }));
+  return <main className="mx-auto w-full max-w-7xl space-y-6 pb-10">
+    <header><p className="text-sm font-medium text-teal-700">Clinical workspace</p><h1 className="mt-1 text-2xl font-bold text-slate-900">Prescriptions & referrals</h1><p className="mt-1 text-sm text-slate-500">Create auditable prescriptions for pharmacist verification and track specialist referrals through approval and handoff.</p></header>
+    <PrescriptionForm appointments={options} />
+    <section className="space-y-3"><h2 className="text-lg font-semibold text-slate-900">Prescription orders ({prescriptions.length})</h2>{prescriptions.length ? prescriptions.map((item) => <article key={item.id} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><p className="break-all text-xs font-semibold text-teal-800">{item.patient_name} · {item.patient_email}</p><h3 className="mt-1 break-words font-semibold text-slate-900">{item.medication_name} {item.strength}</h3></div><span className="w-fit rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{item.status}</span></div><p className="break-words text-sm text-slate-700">{item.directions} · Qty {item.quantity} · Refills {item.refills}</p><p className="text-xs text-slate-500">Pharmacy: {item.pharmacy || 'Not specified'} · Created {String(item.created_at)}</p>{item.pharmacist_note && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Pharmacist note: {item.pharmacist_note}</p>}{['Pending verification', 'Verified', 'Dispensing'].includes(String(item.status)) && <PrescriptionStatusButton id={String(item.id)} status={String(item.status)} allowVoid />}</article>) : <p className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">No prescriptions have been issued.</p>}</section>
+    <ReferralForm appointments={options} />
+    <section className="space-y-3"><h2 className="text-lg font-semibold text-slate-900">Referral tracker ({referrals.length})</h2>{referrals.length ? referrals.map((item) => <article key={item.id} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><p className="break-all text-xs font-semibold text-teal-800">{item.patient_name} · {item.patient_email}</p><h3 className="mt-1 break-words font-semibold text-slate-900">{item.specialty}{item.destination ? ` · ${item.destination}` : ''}</h3></div><span className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${item.urgency === 'urgent' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}`}>{item.urgency} · {item.status}</span></div><p className="break-words whitespace-pre-wrap text-sm text-slate-700">{item.reason}</p><div className="flex flex-wrap gap-2">{item.status === 'Needs approval' && <><ReferralStatusButton id={String(item.id)} status={String(item.status)} next="Approved" /><ReferralStatusButton id={String(item.id)} status={String(item.status)} next="Cancelled" /></>}{item.status === 'Approved' && <><ReferralStatusButton id={String(item.id)} status={String(item.status)} next="Sent" /><ReferralStatusButton id={String(item.id)} status={String(item.status)} next="Cancelled" /></>}{item.status === 'Sent' && <ReferralStatusButton id={String(item.id)} status={String(item.status)} next="Completed" />}</div></article>) : <p className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">No referrals have been submitted.</p>}</section>
+  </main>;
+}

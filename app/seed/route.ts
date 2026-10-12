@@ -59,6 +59,8 @@ async function seedAppointments() {
   await sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS doctor_id TEXT`;
   await sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS consultation_id TEXT`;
   await sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS fee_cents INT NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS check_in_status TEXT NOT NULL DEFAULT 'Not checked in'`;
+  await sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMP`;
 
   const insertedAppointments = await Promise.all(
     patientAppointments.map(
@@ -171,6 +173,105 @@ async function seedBookingCatalog() {
   await sql`ALTER TABLE patient_requests ADD COLUMN IF NOT EXISTS response TEXT`;
   await sql`ALTER TABLE patient_requests ADD COLUMN IF NOT EXISTS responded_by TEXT`;
   await sql`ALTER TABLE patient_requests ADD COLUMN IF NOT EXISTS responded_at TIMESTAMP`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS clinical_notes (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      appointment_id UUID REFERENCES appointments(id),
+      doctor_email TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Draft',
+      addendum_to UUID REFERENCES clinical_notes(id),
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      signed_at TIMESTAMP
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS diagnostic_results (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      appointment_id UUID REFERENCES appointments(id),
+      doctor_email TEXT NOT NULL,
+      test_name TEXT NOT NULL,
+      result_summary TEXT NOT NULL,
+      source_system TEXT NOT NULL DEFAULT 'Manual intake',
+      external_report_id TEXT,
+      priority TEXT NOT NULL DEFAULT 'routine',
+      status TEXT NOT NULL DEFAULT 'Pending',
+      released_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      reviewed_at TIMESTAMP
+    )
+  `;
+  await sql`ALTER TABLE diagnostic_results ADD COLUMN IF NOT EXISTS source_system TEXT NOT NULL DEFAULT 'Manual intake'`;
+  await sql`ALTER TABLE diagnostic_results ADD COLUMN IF NOT EXISTS external_report_id TEXT`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS diagnostic_results_external_report_unique ON diagnostic_results (source_system, external_report_id) WHERE external_report_id IS NOT NULL`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS patient_clinical_items (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      item_type TEXT NOT NULL,
+      item_name TEXT NOT NULL,
+      details TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Active',
+      created_by TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      archived_at TIMESTAMP
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS doctor_schedule_blocks (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      doctor_email TEXT NOT NULL,
+      doctor_name TEXT NOT NULL,
+      block_date DATE NOT NULL,
+      start_time TEXT NOT NULL,
+      end_time TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS prescriptions (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      appointment_id UUID REFERENCES appointments(id),
+      doctor_email TEXT NOT NULL,
+      medication_name TEXT NOT NULL,
+      strength TEXT NOT NULL,
+      directions TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      refills INTEGER NOT NULL DEFAULT 0,
+      pharmacy TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Pending verification',
+      pharmacist_note TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      verified_at TIMESTAMP,
+      dispensed_at TIMESTAMP,
+      voided_at TIMESTAMP
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS clinical_referrals (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      appointment_id UUID REFERENCES appointments(id),
+      doctor_email TEXT NOT NULL,
+      specialty TEXT NOT NULL,
+      destination TEXT NOT NULL DEFAULT '',
+      reason TEXT NOT NULL,
+      urgency TEXT NOT NULL DEFAULT 'routine',
+      status TEXT NOT NULL DEFAULT 'Needs approval',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      approved_at TIMESTAMP,
+      sent_at TIMESTAMP,
+      completed_at TIMESTAMP,
+      archived_at TIMESTAMP
+    )
+  `;
   await sql`
     CREATE TABLE IF NOT EXISTS patient_medication_reminders (
       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,

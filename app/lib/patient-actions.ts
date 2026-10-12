@@ -257,7 +257,15 @@ export async function bookPatientAppointment(input: BookingInput) {
         LIMIT 1
       `;
 
-      if (!doctorRecord || !consultationRecord || !availableSlot) {
+      const [scheduleBlock] = await transaction`
+        SELECT id FROM doctor_schedule_blocks
+        WHERE doctor_name = ${doctorRecord?.name} AND block_date = ${appointmentDate} AND active = TRUE
+          AND to_timestamp(${appointmentTime}, 'HH12:MI AM')::time >= start_time::time
+          AND to_timestamp(${appointmentTime}, 'HH12:MI AM')::time < end_time::time
+        LIMIT 1
+      `;
+
+      if (!doctorRecord || !consultationRecord || !availableSlot || scheduleBlock) {
         return { success: false, message: 'The selected doctor, consultation, or time is unavailable.' };
       }
 
@@ -368,6 +376,13 @@ export async function reschedulePatientAppointment(input: z.infer<typeof Resched
           AND active = TRUE
         LIMIT 1
       `;
+      const [scheduleBlock] = await transaction`
+        SELECT id FROM doctor_schedule_blocks
+        WHERE doctor_name = ${appointment.doctor_name} AND block_date = ${appointmentDate} AND active = TRUE
+          AND to_timestamp(${appointmentTime}, 'HH12:MI AM')::time >= start_time::time
+          AND to_timestamp(${appointmentTime}, 'HH12:MI AM')::time < end_time::time
+        LIMIT 1
+      `;
       const [existingSlot] = await transaction`
         SELECT id FROM appointments
         WHERE doctor_id = ${appointment.doctor_id}
@@ -377,7 +392,7 @@ export async function reschedulePatientAppointment(input: z.infer<typeof Resched
           AND id <> ${appointmentId}
         LIMIT 1
       `;
-      if (!availableSlot || existingSlot) return { success: false, message: 'That appointment slot is unavailable.' };
+      if (!availableSlot || existingSlot || scheduleBlock) return { success: false, message: 'That appointment slot is unavailable.' };
 
       await transaction`
         UPDATE appointments

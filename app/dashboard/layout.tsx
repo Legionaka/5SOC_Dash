@@ -17,7 +17,7 @@ export default async function Layout({
       name={session.user.name}
       email={session.user.email}
     />
-    <div className="min-w-0 grow overflow-y-auto p-6 md:p-10 lg:p-12">
+    <div className="min-w-0 grow overflow-y-auto p-4 sm:p-6 md:p-10 lg:p-12">
       {children}
     </div>
     </div>
