@@ -143,4 +143,61 @@ const revenue = [
   { month: 'Dec', revenue: 4800 },
 ];
 
-export { users, customers, invoices, revenue };
+const patientAppointments = [
+  {
+    patient_email: 'user@nextmail.com',
+    doctor_name: 'Dr. Aisha Morgan',
+    specialty: 'General Practice',
+    appointment_date: '2026-10-15',
+    appointment_time: '09:30 AM',
+    reason: 'Annual check-up',
+    status: 'Confirmed',
+  },
+  {
+    patient_email: 'user@nextmail.com',
+    doctor_name: 'Dr. Daniel Lee',
+    specialty: 'Dermatology',
+    appointment_date: '2026-10-17',
+    appointment_time: '02:00 PM',
+    reason: 'Skin review',
+    status: 'Pending',
+  },
+  {
+    patient_email: 'user@nextmail.com',
+    doctor_name: 'Dr. Rachel Singh',
+    specialty: 'Cardiology',
+    appointment_date: '2026-10-21',
+    appointment_time: '11:15 AM',
+    reason: 'Follow-up consultation',
+    status: 'Reschedule available',
+  },
+];
+
+const walletTransactions = [
+  {
+    patient_email: 'user@nextmail.com',
+    amount: 18000,
+    status: 'paid',
+    description: 'General consultation',
+  },
+  {
+    patient_email: 'user@nextmail.com',
+    amount: 4500,
+    status: 'pending',
+    description: 'Dermatology review',
+  },
+  {
+    patient_email: 'user@nextmail.com',
+    amount: 1500,
+    status: 'outgoing',
+    description: 'Pharmacy refill',
+  },
+  {
+    patient_email: 'user@nextmail.com',
+    amount: 3000,
+    status: 'paid',
+    description: 'Cardiology follow-up',
+  },
+];
+
+export { users, customers, invoices, revenue, patientAppointments, walletTransactions };

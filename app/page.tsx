@@ -3,6 +3,7 @@ import { getDashboardHome } from '@/app/lib/access-control';
 import AcmeLogo from '@/app/ui/acme-logo';
 import HomeHero from '@/app/ui/home-hero';
 import HomeSignInButton from '@/app/ui/home-sign-in-button';
+import ImageCarousel from '@/app/ui/image-carousel';
 import { lusitana } from '@/app/ui/fonts';
 import {
   ArrowRightIcon,
@@ -43,50 +44,15 @@ export default async function Page() {
           isLoggedIn={!!session?.user}
         />
 
-        <div className="relative mx-auto w-full max-w-lg">
-          <div className="absolute -inset-5 rounded-[2rem] bg-gradient-to-br from-teal-100 via-cyan-50 to-sky-100" />
-          <div className="relative overflow-hidden rounded-3xl border border-teal-100 bg-white p-7 shadow-xl shadow-teal-900/10 sm:p-10">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-700 text-white">
-              <HeartIcon className="h-8 w-8" />
-            </div>
-            <h2 className={`${lusitana.className} mt-7 text-2xl font-bold`}>
-              One sign-in. The right workspace.
-            </h2>
-            <p className="mt-3 leading-7 text-slate-600">
-              Your account role determines which areas of the clinic portal
-              you can access.
-            </p>
-
-            <div className="mt-8 space-y-3">
-              <div className="flex items-center gap-4 rounded-xl bg-slate-50 p-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-teal-700 shadow-sm">
-                  <UserGroupIcon className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="font-semibold text-slate-800">
-                    Role-based access
-                  </p>
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    Patient, clinical, pharmacy, and admin areas
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 rounded-xl bg-slate-50 p-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-teal-700 shadow-sm">
-                  <ShieldCheckIcon className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="font-semibold text-slate-800">
-                    Account-protected pages
-                  </p>
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    Sign in to access your permitted workspace
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ImageCarousel
+          images={[
+            '/images/doctor-patient-consultation.jpg',
+            '/images/doctor-clipboard.jpg',
+            '/images/doctor-handshake.jpg',
+            '/images/doctor-care.jpg',
+          ]}
+          interval={5000}
+        />
       </section>
 
       <footer className="border-t border-slate-100 px-6 py-5 text-center text-sm text-slate-500">

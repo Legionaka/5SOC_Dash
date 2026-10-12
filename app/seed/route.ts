@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import postgres from 'postgres';
-import { invoices, customers, revenue, users } from '../lib/placeholder-data';
+import { invoices, customers, revenue, users, patientAppointments, walletTransactions } from '../lib/placeholder-data';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -32,6 +32,57 @@ async function seedUsers() {
   );
 
   return insertedUsers;
+}
+
+async function seedAppointments() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS appointments (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      doctor_name TEXT NOT NULL,
+      specialty TEXT NOT NULL,
+      appointment_date DATE NOT NULL,
+      appointment_time TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Pending'
+    );
+  `;
+
+  const insertedAppointments = await Promise.all(
+    patientAppointments.map(
+      (appointment) => sql`
+        INSERT INTO appointments (patient_email, doctor_name, specialty, appointment_date, appointment_time, reason, status)
+        VALUES (${appointment.patient_email}, ${appointment.doctor_name}, ${appointment.specialty}, ${appointment.appointment_date}, ${appointment.appointment_time}, ${appointment.reason}, ${appointment.status})
+        ON CONFLICT DO NOTHING;
+      `,
+    ),
+  );
+
+  return insertedAppointments;
+}
+
+async function seedWalletTransactions() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS wallet_transactions (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      patient_email TEXT NOT NULL,
+      amount INT NOT NULL,
+      status TEXT NOT NULL,
+      description TEXT NOT NULL
+    );
+  `;
+
+  const insertedTransactions = await Promise.all(
+    walletTransactions.map(
+      (transaction) => sql`
+        INSERT INTO wallet_transactions (patient_email, amount, status, description)
+        VALUES (${transaction.patient_email}, ${transaction.amount}, ${transaction.status}, ${transaction.description})
+        ON CONFLICT DO NOTHING;
+      `,
+    ),
+  );
+
+  return insertedTransactions;
 }
 
 async function seedInvoices() {
@@ -110,6 +161,8 @@ export async function GET() {
   try {
     await seedUsers();
     await seedCustomers();
+    await seedAppointments();
+    await seedWalletTransactions();
     await seedInvoices();
     await seedRevenue();
 
