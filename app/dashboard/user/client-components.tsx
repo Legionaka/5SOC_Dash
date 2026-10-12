@@ -9,7 +9,16 @@ import {
   HeartIcon,
   ArrowPathIcon,
   XMarkIcon,
+  PhoneIcon,
+  InboxArrowDownIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
+
+const SUPPORT_OPTIONS = [
+  { title: 'Phone support', detail: '+1 (555) 014-3344', icon: PhoneIcon },
+  { title: 'Website support', detail: 'chat.mediclinic.example', icon: InboxArrowDownIcon },
+  { title: 'Clinic assistance', detail: 'Front desk • Open today 08:00–18:00', icon: ClockIcon },
+];
 
 const CONSULTATION_TYPES = [
   {
@@ -510,7 +519,7 @@ export function PatientInvoicesSection({ invoices }: { invoices: any[] }) {
   );
 }
 
-export function PatientSupportSection({ supportOptions }: { supportOptions: any[] }) {
+export function PatientSupportSection() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center gap-3">
@@ -524,7 +533,7 @@ export function PatientSupportSection({ supportOptions }: { supportOptions: any[
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        {supportOptions.map((option) => {
+        {SUPPORT_OPTIONS.map((option) => {
           const Icon = option.icon;
           return (
             <button

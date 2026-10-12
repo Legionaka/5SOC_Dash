@@ -172,6 +172,111 @@ export async function fetchCustomers() {
   }
 }
 
+export async function fetchPatientDashboardData(email: string) {
+  try {
+    const [patient] = await sql`
+      SELECT id, name, email
+      FROM users
+      WHERE email = ${email} AND role = 'patient'
+      LIMIT 1
+    `;
+
+    const appointments = await sql`
+      SELECT id, doctor_name, specialty, appointment_date, appointment_time, reason, status
+      FROM appointments
+      WHERE patient_email = ${email}
+      ORDER BY appointment_date ASC, appointment_time ASC
+      LIMIT 5
+    `;
+
+    const transactions = await sql`
+      SELECT id, amount, status, description
+      FROM wallet_transactions
+      WHERE patient_email = ${email}
+      ORDER BY id DESC
+      LIMIT 10
+    `;
+
+    const [wallet] = await sql`
+      SELECT
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS paid,
+        COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) AS pending,
+        COALESCE(SUM(CASE WHEN status = 'outgoing' THEN amount ELSE 0 END), 0) AS outgoing,
+        COALESCE(SUM(amount), 0) AS total
+      FROM wallet_transactions
+      WHERE patient_email = ${email}
+    `;
+
+    const invoices = await sql`
+      SELECT invoices.id, invoices.amount, invoices.status, invoices.date
+      FROM invoices
+      JOIN customers ON customers.id = invoices.customer_id
+      WHERE customers.email = ${email}
+      ORDER BY invoices.date DESC
+      LIMIT 5
+    `;
+
+    const money = (value: unknown) => `$${(Number(value ?? 0) / 100).toFixed(2)}`;
+    const formattedAppointments = appointments.map((appointment) => ({
+      id: String(appointment.id),
+      doctor: appointment.doctor_name,
+      specialty: appointment.specialty,
+      date: String(appointment.appointment_date),
+      time: appointment.appointment_time,
+      reason: appointment.reason,
+      status: appointment.status,
+      amount: 0,
+    }));
+
+    return {
+      patient: patient ?? { name: 'Patient', email },
+      careHighlights: [
+        { label: 'Active prescriptions', value: patient ? '3' : '0' },
+        { label: 'Booked visits', value: String(formattedAppointments.length) },
+        { label: 'Lab results', value: '2 new' },
+        { label: 'Care plan', value: patient ? 'Updated' : 'Pending' },
+      ],
+      upcomingAppointments: formattedAppointments,
+      walletSummary: [
+        { label: 'Wallet Balance', value: money(wallet?.total), tone: 'emerald' },
+        { label: 'Paid This Month', value: money(wallet?.paid), tone: 'blue' },
+        { label: 'Pending', value: money(wallet?.pending), tone: 'amber' },
+        { label: 'Outgoing', value: money(wallet?.outgoing), tone: 'slate' },
+      ],
+      walletTransactions: transactions.map((transaction) => ({
+        id: String(transaction.id),
+        amount: money(transaction.amount),
+        status: transaction.status,
+        description: transaction.description,
+        date: 'Recent',
+      })),
+      invoices: invoices.map((invoice) => ({
+        id: String(invoice.id),
+        amount: money(invoice.amount),
+        status: invoice.status,
+        createdDate: String(invoice.date),
+      })),
+      unreadNotifications: 0,
+    };
+  } catch (error) {
+    console.error('Patient dashboard data unavailable.', error);
+    return {
+      patient: { name: 'Patient', email },
+      careHighlights: [{ label: 'Active prescriptions', value: '0' }],
+      upcomingAppointments: [],
+      walletSummary: [
+        { label: 'Wallet Balance', value: '$0.00', tone: 'emerald' },
+        { label: 'Paid This Month', value: '$0.00', tone: 'blue' },
+        { label: 'Pending', value: '$0.00', tone: 'amber' },
+        { label: 'Outgoing', value: '$0.00', tone: 'slate' },
+      ],
+      walletTransactions: [],
+      invoices: [],
+      unreadNotifications: 0,
+    };
+  }
+}
+
 export async function probePatientDashboardData(emailPresent: boolean) {
   const result: {
     invoiceColumns: string[];

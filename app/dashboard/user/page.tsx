@@ -2,6 +2,18 @@ import { auth } from '@/auth';
 import { lusitana } from '@/app/ui/fonts';
 import { redirect } from 'next/navigation';
 import { TEST_PATIENT_EMAIL } from '@/app/lib/access-control';
+import { fetchPatientDashboardData } from '@/app/lib/data';
+import {
+  PatientAppointmentsSection,
+  PatientInvoicesSection,
+  PatientSupportSection,
+  PatientWalletSection,
+} from './client-components';
+import {
+  BellAlertIcon,
+  PencilIcon,
+  UserCircleIcon,
+} from '@heroicons/react/24/outline';
 
 export default async function PatientDashboardPage() {
   const session = await auth();
@@ -13,6 +25,8 @@ export default async function PatientDashboardPage() {
   if (!isPatient || !isTestPatient) {
     redirect('/unauthorized');
   }
+
+  const data = await fetchPatientDashboardData(session.user.email!);
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-8 pb-12">
@@ -92,7 +106,7 @@ export default async function PatientDashboardPage() {
       </div>
 
       {/* Support Section */}
-      <PatientSupportSection supportOptions={data.supportOptions} />
+      <PatientSupportSection />
     </main>
   );
 }
