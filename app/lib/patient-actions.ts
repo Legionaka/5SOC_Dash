@@ -91,6 +91,22 @@ export async function markPatientNotificationRead(notificationId: string) {
   return { success: true, message: 'Notification marked as read.' };
 }
 
+export async function markAllPatientNotificationsRead() {
+  const session = await auth();
+  const email = session?.user.email;
+  if (!email || session.user.role !== 'patient') {
+    return { success: false, message: 'Unable to update notifications.' };
+  }
+  await sql`
+    UPDATE notifications
+    SET read = TRUE
+    WHERE user_email = ${email} AND user_type = 'patient' AND read = FALSE
+  `;
+  revalidatePath('/dashboard/user');
+  revalidatePath('/dashboard/user/notifications');
+  return { success: true, message: 'All notifications marked as read.' };
+}
+
 export async function bookPatientAppointment(input: BookingInput) {
   const session = await auth();
   const email = session?.user.email;
