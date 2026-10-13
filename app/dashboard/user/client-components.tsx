@@ -11,6 +11,7 @@ import {
   reschedulePatientAppointment,
 } from '@/app/lib/patient-actions';
 import { lusitana } from '@/app/ui/fonts';
+import { formatCurrency } from '@/app/lib/utils';
 import {
   CalendarDaysIcon,
   DocumentTextIcon,
@@ -207,7 +208,7 @@ export function AppointmentBookingModal({ isOpen, onClose, bookingOptions }: { i
                     >
                       <p className="font-semibold text-slate-900">{type.label}</p>
                       <p className="text-sm text-slate-600">{type.examples}</p>
-                      <p className="text-xs text-slate-500 mt-1">{type.durationMinutes} minutes · ${(type.feeCents / 100).toFixed(2)}</p>
+                      <p className="text-xs text-slate-500 mt-1">{type.durationMinutes} minutes · {formatCurrency(type.feeCents)}</p>
                     </button>
                   ))}
                 </div>
@@ -505,7 +506,7 @@ export function PatientAppointmentsSection({ appointments, bookingOptions }: { a
                   </div>
                   <div>
                     <p className="font-medium text-slate-700">Cost</p>
-                    <p className="text-teal-600 font-semibold">${(appointment.amount / 100).toFixed(2)}</p>
+                    <p className="text-teal-600 font-semibold">{formatCurrency(appointment.amount)}</p>
                   </div>
                 </div>
 
@@ -636,7 +637,7 @@ export function PatientWalletSection({ walletSummary, transactions }: { walletSu
       </div>
       {isFunding && (
         <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-          <label className="block text-xs font-medium text-emerald-900">Amount to add (USD)
+          <label className="block text-xs font-medium text-emerald-900">Amount to add (ZAR)
             <input type="number" min="1" max="10000" step="0.01" value={fundingAmount} onChange={(event) => setFundingAmount(event.target.value)} className="mt-1 w-full rounded border border-emerald-300 bg-white px-2 py-1.5 text-sm" placeholder="25.00" />
           </label>
           <button onClick={submitFundingRequest} disabled={isSubmitting || !fundingAmount} className="mt-2 w-full rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">{isSubmitting ? 'Submitting...' : 'Create pending payment'}</button>

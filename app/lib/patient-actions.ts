@@ -464,7 +464,7 @@ export async function requestWalletFunds(amountCents: number) {
   const email = session?.user.email;
   if (!email || session.user.role !== 'patient') return { success: false, message: 'You are not authorized to fund this wallet.' };
   if (!Number.isInteger(amountCents) || amountCents < 100 || amountCents > 1000000) {
-    return { success: false, message: 'Enter an amount between $1.00 and $10,000.00.' };
+    return { success: false, message: 'Enter an amount between R1.00 and R10,000.00.' };
   }
   try {
     await sql`

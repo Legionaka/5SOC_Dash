@@ -10,7 +10,7 @@ export type InvoicePdfData = {
 };
 
 function money(cents: number) {
-  return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  return (cents / 100).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' });
 }
 
 export function createInvoicePdf(invoice: InvoicePdfData): Promise<Buffer> {

@@ -235,7 +235,7 @@ export async function fetchPatientDashboardData(email: string) {
       LIMIT 5
     `;
 
-    const money = (value: unknown) => `$${(Number(value ?? 0) / 100).toFixed(2)}`;
+    const money = (value: unknown) => formatCurrency(Number(value ?? 0));
     const formattedAppointments = appointments.map((appointment) => ({
       id: String(appointment.id),
       doctorId: appointment.doctor_id ? String(appointment.doctor_id) : null,
@@ -317,10 +317,10 @@ export async function fetchPatientDashboardData(email: string) {
       upcomingAppointments: [],
       appointmentHistory: [],
       walletSummary: [
-        { label: 'Wallet Balance', value: '$0.00', tone: 'emerald' },
-        { label: 'Paid This Month', value: '$0.00', tone: 'blue' },
-        { label: 'Pending', value: '$0.00', tone: 'amber' },
-        { label: 'Outgoing', value: '$0.00', tone: 'slate' },
+        { label: 'Wallet Balance', value: formatCurrency(0), tone: 'emerald' },
+        { label: 'Paid This Month', value: formatCurrency(0), tone: 'blue' },
+        { label: 'Pending', value: formatCurrency(0), tone: 'amber' },
+        { label: 'Outgoing', value: formatCurrency(0), tone: 'slate' },
       ],
       walletTransactions: [],
       invoices: [],
