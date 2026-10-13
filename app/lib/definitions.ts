@@ -21,6 +21,7 @@ export type User = {
   password: string;
   role: UserRole;
   must_change_password?: boolean;
+  active?: boolean;
 };
 
 export type Customer = {

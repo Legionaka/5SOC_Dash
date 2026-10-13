@@ -5,23 +5,23 @@ export default function InvoiceStatus({ status }: { status: string }) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center rounded-full px-2 py-1 text-xs',
+        'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold',
         {
-          'bg-gray-100 text-gray-500': status === 'pending',
-          'bg-green-500 text-white': status === 'paid',
+          'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200': status === 'pending',
+          'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200': status === 'paid',
         },
       )}
     >
       {status === 'pending' ? (
         <>
           Pending
-          <ClockIcon className="ml-1 w-4 text-gray-500" />
+          <ClockIcon className="h-4 w-4" aria-hidden="true" />
         </>
       ) : null}
       {status === 'paid' ? (
         <>
           Paid
-          <CheckIcon className="ml-1 w-4 text-white" />
+          <CheckIcon className="h-4 w-4" aria-hidden="true" />
         </>
       ) : null}
     </span>

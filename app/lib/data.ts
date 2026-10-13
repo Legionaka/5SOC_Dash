@@ -447,7 +447,7 @@ export async function fetchNurseQueue() {
 
 export async function fetchAdminStaffAccounts() {
   return sql`
-    SELECT id, name, email, role, must_change_password
+    SELECT id, name, email, role, must_change_password, active
     FROM users
     WHERE role IN ('doctor', 'nurse', 'pharmacist', 'pharmacy_reception', 'pharmacy_stocker')
     ORDER BY role, name LIMIT 300

@@ -6,6 +6,8 @@ import AcmeLogo from '@/app/ui/acme-logo';
 import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
+  Bars3Icon,
+  XMarkIcon,
   PowerIcon,
 } from '@heroicons/react/24/outline';
 import type { UserRole } from '@/app/lib/definitions';
@@ -25,6 +27,7 @@ export default function SideNav({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -94,6 +97,15 @@ export default function SideNav({
             <ChevronDoubleLeftIcon className="h-5 w-5" />
           )}
         </button>
+        <button
+          type="button"
+          onClick={() => setMobileOpen((current) => !current)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-teal-300 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 md:hidden"
+          aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={mobileOpen}
+        >
+          {mobileOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />}
+        </button>
       </div>
 
       <div
@@ -120,9 +132,9 @@ export default function SideNav({
 
       <nav
         aria-label="Main navigation"
-        className="mt-4 flex min-h-0 grow flex-row gap-2 overflow-x-auto overscroll-x-contain md:mt-6 md:flex-1 md:flex-col md:overflow-x-hidden md:overflow-y-auto md:overscroll-y-contain"
+        className={`${mobileOpen ? 'flex' : 'hidden'} mt-4 min-h-0 grow flex-col gap-2 overflow-y-auto overscroll-y-contain md:mt-6 md:flex md:flex-1 md:flex-col md:overflow-x-hidden`}
       >
-        <NavLinks role={role} collapsed={collapsed} />
+        <NavLinks role={role} collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
       </nav>
 
       <form action={signOutUser} className="mt-3 shrink-0 border-t border-slate-100 pt-3">

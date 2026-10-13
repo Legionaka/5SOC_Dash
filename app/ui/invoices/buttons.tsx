@@ -1,4 +1,4 @@
-import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { deleteInvoice } from '@/app/lib/actions';
 
@@ -21,6 +21,19 @@ export function UpdateInvoice({ id }: { id: string }) {
       className="rounded-md border p-2 hover:bg-gray-100"
     >
       <PencilIcon className="w-5" />
+    </Link>
+  );
+}
+
+export function DownloadInvoice({ id }: { id: string }) {
+  return (
+    <Link
+      href={`/api/invoices/${id}/pdf`}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-600 transition hover:border-teal-300 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+    >
+      <ArrowDownTrayIcon className="h-4 w-4" />
+      <span className="hidden sm:inline">PDF</span>
+      <span className="sr-only">Download invoice PDF</span>
     </Link>
   );
 }

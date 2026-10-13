@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { createClient } from '@/app/lib/supabase/server';
 import { getDashboardHome } from '@/app/lib/access-control';
+import { requireAdmin } from '@/app/lib/security';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -35,12 +36,6 @@ export type State = {
   };
   message?: string | null;
 };
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user) redirect('/login');
-  if (session.user.role !== 'admin') redirect('/unauthorized');
-}
 
 export async function createInvoice(prevState: State, formData: FormData) {
   await requireAdmin();
@@ -144,6 +139,17 @@ export async function authenticate(
     await supabase.auth.signOut();
     return 'Your account is not configured for this application.';
   }
+  await sql.begin(async (transaction) => {
+    await transaction`
+      UPDATE users
+      SET last_login_at = NOW(), failed_login_attempts = 0, locked_until = NULL
+      WHERE auth_user_id = ${session.user.id}
+    `;
+    await transaction`
+      INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata)
+      VALUES (${session.user.email}, ${session.user.role}, 'auth.login.succeeded', 'user', ${session.user.id}, '{}'::jsonb)
+    `;
+  });
   if (session.user.mustChangePassword) redirect('/change-password');
   redirect(getDashboardHome(session.user.role));
 }

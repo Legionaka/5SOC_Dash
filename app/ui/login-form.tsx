@@ -33,7 +33,7 @@ export default function LoginForm({
         className={
           embedded
             ? 'rounded-2xl border border-teal-100 bg-white p-5 shadow-xl shadow-teal-900/10 sm:p-6'
-            : 'flex-1 rounded-lg bg-gray-50 px-6 pb-4 pt-8'
+            : 'flex-1 rounded-2xl border border-slate-200 bg-white px-6 pb-5 pt-8 shadow-sm'
         }
       >
         <h1
@@ -50,14 +50,14 @@ export default function LoginForm({
         <div className="w-full">
           <div>
             <label
-              className={`mb-2 mt-5 block text-sm font-medium ${embedded ? 'text-slate-700' : 'text-gray-900'}`}
+              className="mb-2 mt-5 block text-sm font-medium text-slate-700"
               htmlFor="email"
             >
               Email
             </label>
             <div className="relative">
               <input
-                className={`peer block w-full rounded-lg border py-3 pl-10 text-sm outline-none transition placeholder:text-slate-400 focus:ring-2 ${embedded ? 'border-slate-200 bg-white text-slate-900 focus:border-teal-700 focus:ring-teal-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'}`}
+                className="peer block w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-700 focus:ring-2 focus:ring-teal-100"
                 id="email"
                 type="email"
                 name="email"
@@ -66,20 +66,20 @@ export default function LoginForm({
                 autoComplete="email"
               />
               <AtSymbolIcon
-                className={`pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 ${embedded ? 'text-slate-400 peer-focus:text-teal-700' : 'text-gray-500 peer-focus:text-gray-900'}`}
+                className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400 peer-focus:text-teal-700"
               />
             </div>
           </div>
           <div className="mt-4">
             <label
-              className={`mb-2 mt-5 block text-sm font-medium ${embedded ? 'text-slate-700' : 'text-gray-900'}`}
+              className="mb-2 mt-5 block text-sm font-medium text-slate-700"
               htmlFor="password"
             >
               Password
             </label>
             <div className="relative">
               <input
-                className={`peer block w-full rounded-lg border py-3 pl-10 text-sm outline-none transition placeholder:text-slate-400 focus:ring-2 ${embedded ? 'border-slate-200 bg-white text-slate-900 focus:border-teal-700 focus:ring-teal-100' : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'}`}
+                className="peer block w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-700 focus:ring-2 focus:ring-teal-100"
                 id="password"
                 type="password"
                 name="password"
@@ -89,14 +89,14 @@ export default function LoginForm({
                 autoComplete="current-password"
               />
               <KeyIcon
-                className={`pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 ${embedded ? 'text-slate-400 peer-focus:text-teal-700' : 'text-gray-500 peer-focus:text-gray-900'}`}
+                className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400 peer-focus:text-teal-700"
               />
             </div>
           </div>
         </div>
         <input type="hidden" name="redirectTo" value={callbackUrl} />
         <Button
-          className={`mt-5 w-full justify-center gap-2 rounded-lg py-3 ${embedded ? 'h-auto bg-teal-700 text-base font-semibold hover:bg-teal-800 focus-visible:outline-teal-700 active:bg-teal-900' : ''}`}
+          className="mt-5 h-auto w-full justify-center gap-2 rounded-xl bg-teal-700 py-3 text-base font-semibold text-white hover:bg-teal-800 focus-visible:outline-teal-700 active:bg-teal-900"
           aria-disabled={isPending}
           disabled={isPending}
         >

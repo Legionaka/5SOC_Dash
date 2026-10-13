@@ -11,6 +11,7 @@ export type AppUser = {
   email: string;
   role: UserRole;
   mustChangePassword: boolean;
+  active: boolean;
 };
 
 export type AppSession = { user: AppUser };
@@ -26,15 +27,22 @@ export async function auth(): Promise<AppSession | null> {
     email: string;
     role: string;
     must_change_password: boolean;
+    active: boolean;
+    account_expires_at: Date | null;
   }[]>`
-    SELECT id, name, email, role, must_change_password
+    SELECT id, name, email, role, must_change_password, active, account_expires_at
     FROM users
     WHERE auth_user_id = ${user.id}
        OR (auth_user_id IS NULL AND lower(email) = lower(${user.email}))
     LIMIT 1
   `;
 
-  if (!profile || !isUserRole(profile.role)) return null;
+  if (
+    !profile ||
+    !isUserRole(profile.role) ||
+    profile.active !== true ||
+    (profile.account_expires_at && new Date(profile.account_expires_at).getTime() <= Date.now())
+  ) return null;
 
   await sql`
     UPDATE users
@@ -49,6 +57,7 @@ export async function auth(): Promise<AppSession | null> {
       email: profile.email,
       role: profile.role,
       mustChangePassword: profile.must_change_password === true,
+      active: profile.active === true,
     },
   };
 }

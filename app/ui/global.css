@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --clinic-brand: #0f766e;
+  --clinic-brand-dark: #115e59;
+  --clinic-canvas: #f8fafc;
+  --clinic-surface: #ffffff;
+  --clinic-text: #0f172a;
+  --clinic-muted: #64748b;
+  --clinic-border: #e2e8f0;
+  --clinic-danger: #e11d48;
+  --clinic-radius: 1rem;
+}
+
+html {
+  background: var(--clinic-canvas);
+}
+
+body {
+  background: var(--clinic-canvas);
+  color: var(--clinic-text);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;

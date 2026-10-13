@@ -30,6 +30,14 @@ async function seedUsers() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS data_sharing_consent BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled_by TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS account_expires_at TIMESTAMPTZ`;
 
   const insertedUsers = await Promise.all(
     users.map(async (user) => {

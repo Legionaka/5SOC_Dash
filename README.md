@@ -47,3 +47,24 @@ user passwords.
 Authorization is enforced in server-rendered pages and server actions. The
 Next.js proxy refreshes Supabase Auth cookies and blocks unauthenticated access
 to protected routes.
+
+## Security hardening
+
+Apply `supabase/migrations/0003_security_hardening.sql` after the RLS migration.
+It adds account lifecycle fields, permission mappings, audit metadata, indexes,
+and append-only audit-log triggers. Staff administrators can disable accounts,
+reset temporary passwords, and revoke all Supabase sessions from the staff
+directory. The application also sends baseline security headers from
+`next.config.ts`.
+
+Enable MFA, email policies, breached-password protection, SMTP, and rate limits
+in the Supabase dashboard before production. These provider controls cannot be
+enabled by this repository migration alone. Remove or disable the development
+seed route in production and keep `SUPABASE_SERVICE_ROLE_KEY` server-only.
+
+## Invoice PDFs
+
+Invoices can be downloaded from the admin and patient invoice screens. The
+authenticated `/api/invoices/[id]/pdf` route checks role or patient ownership,
+generates a branded PDF with PDFKit, and records the download in `audit_logs`.
+PDFs are generated on demand and returned with private, non-cacheable headers.

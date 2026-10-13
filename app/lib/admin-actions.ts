@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createAdminClient } from '@/app/lib/supabase/admin';
+import { requireAdmin } from '@/app/lib/security';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const StaffSchema = z.object({
@@ -17,10 +18,10 @@ const StaffSchema = z.object({
 });
 
 export async function createStaffAccount(input: z.infer<typeof StaffSchema>) {
-  const session = await auth();
+  const session = await requireAdmin();
   const actorEmail = session?.user.email;
   const parsed = StaffSchema.safeParse(input);
-  if (session?.user.role !== 'admin' || !actorEmail || !parsed.success) {
+  if (!actorEmail || !parsed.success) {
     return { success: false, message: 'Enter valid staff details. Admin access is required.' };
   }
   const normalizedEmail = parsed.data.email.toLowerCase();
@@ -65,6 +66,104 @@ export async function createStaffAccount(input: z.infer<typeof StaffSchema>) {
     }
     console.error('Staff account creation failed:', error);
     return { success: false, message: 'We could not create this staff account.' };
+  }
+}
+
+const StaffIdSchema = z.string().uuid();
+const StaffPasswordResetSchema = z.object({
+  staffId: StaffIdSchema,
+  temporaryPassword: z.string().min(12).max(128),
+  reason: z.string().trim().min(5).max(500),
+});
+
+export async function setStaffAccountActive(staffId: string, active: boolean, reason: string) {
+  const session = await requireAdmin();
+  const parsedId = StaffIdSchema.safeParse(staffId);
+  const parsedReason = z.string().trim().min(5).max(500).safeParse(reason);
+  if (!parsedId.success || !parsedReason.success) {
+    return { success: false, message: 'Provide a valid account and a reason of at least 5 characters.' };
+  }
+  try {
+    const [staff] = await sql`
+      UPDATE users
+      SET active = ${active},
+          disabled_at = CASE WHEN ${active} THEN NULL ELSE NOW() END,
+          disabled_by = CASE WHEN ${active} THEN NULL ELSE ${session.user.email} END
+      WHERE id = ${parsedId.data} AND role <> 'admin'
+      RETURNING id, email, auth_user_id
+    `;
+    if (!staff) return { success: false, message: 'The staff account was not found or cannot be changed.' };
+    if (!active && staff.auth_user_id) {
+      await createAdminClient().auth.admin.signOut(staff.auth_user_id, 'global');
+    }
+    await sql`
+      INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata, reason)
+      VALUES (${session.user.email}, 'admin', ${active ? 'staff_account.enabled' : 'staff_account.disabled'}, 'user', ${staff.id}, ${sql.json({ email: staff.email })}, ${parsedReason.data})
+    `;
+    revalidatePath('/dashboard/admin/staff');
+    return { success: true, message: `${staff.email} was ${active ? 'enabled' : 'disabled'}.` };
+  } catch (error) {
+    console.error('Staff account status update failed:', error);
+    return { success: false, message: 'We could not update that staff account.' };
+  }
+}
+
+export async function resetStaffPassword(input: z.infer<typeof StaffPasswordResetSchema>) {
+  const session = await requireAdmin();
+  const parsed = StaffPasswordResetSchema.safeParse(input);
+  if (!parsed.success) return { success: false, message: 'Provide a valid password and a reason.' };
+  const supabaseAdmin = createAdminClient();
+  try {
+    const password = await bcrypt.hash(parsed.data.temporaryPassword, 12);
+    const result = await sql.begin(async (transaction) => {
+      const [staff] = await transaction`
+        SELECT id, email, auth_user_id FROM users
+        WHERE id = ${parsed.data.staffId} AND role <> 'admin' AND active = TRUE
+        FOR UPDATE
+      `;
+      if (!staff?.auth_user_id) return null;
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(staff.auth_user_id, {
+        password: parsed.data.temporaryPassword,
+      });
+      if (error) throw new Error(`Supabase password reset failed: ${error.message}`);
+      await transaction`
+        UPDATE users SET password = ${password}, must_change_password = TRUE, password_changed_at = NULL
+        WHERE id = ${staff.id}
+      `;
+      await transaction`
+        INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata, reason)
+        VALUES (${session.user.email}, 'admin', 'staff_account.password_reset', 'user', ${staff.id}, ${transaction.json({ email: staff.email })}, ${parsed.data.reason})
+      `;
+      return staff;
+    });
+    if (!result) return { success: false, message: 'The active staff account was not found.' };
+    await supabaseAdmin.auth.admin.signOut(result.auth_user_id, 'global');
+    revalidatePath('/dashboard/admin/staff');
+    return { success: true, message: `A new temporary password was set for ${result.email}.` };
+  } catch (error) {
+    console.error('Staff password reset failed:', error);
+    return { success: false, message: 'We could not reset that staff password.' };
+  }
+}
+
+export async function revokeStaffSessions(staffId: string, reason: string) {
+  const session = await requireAdmin();
+  const parsedId = StaffIdSchema.safeParse(staffId);
+  const parsedReason = z.string().trim().min(5).max(500).safeParse(reason);
+  if (!parsedId.success || !parsedReason.success) return { success: false, message: 'Provide a valid account and reason.' };
+  try {
+    const [staff] = await sql`SELECT id, email, auth_user_id FROM users WHERE id = ${parsedId.data} AND role <> 'admin' LIMIT 1`;
+    if (!staff?.auth_user_id) return { success: false, message: 'The staff account was not found.' };
+    const { error } = await createAdminClient().auth.admin.signOut(staff.auth_user_id, 'global');
+    if (error) throw error;
+    await sql`
+      INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata, reason)
+      VALUES (${session.user.email}, 'admin', 'staff_account.sessions_revoked', 'user', ${staff.id}, ${sql.json({ email: staff.email })}, ${parsedReason.data})
+    `;
+    return { success: true, message: `All sessions for ${staff.email} were revoked.` };
+  } catch (error) {
+    console.error('Staff session revocation failed:', error);
+    return { success: false, message: 'We could not revoke those sessions.' };
   }
 }
 
@@ -193,7 +292,7 @@ export async function changeTemporaryPassword(_previous: string | undefined, for
       });
       if (authError) throw new Error(`Supabase password update failed: ${authError.message}`);
       authPasswordUpdated = true;
-      const [updated] = await transaction`UPDATE users SET password = ${password}, must_change_password = FALSE WHERE email = ${accountEmail} AND must_change_password = TRUE RETURNING email`;
+      const [updated] = await transaction`UPDATE users SET password = ${password}, must_change_password = FALSE, password_changed_at = NOW(), failed_login_attempts = 0, locked_until = NULL WHERE email = ${accountEmail} AND must_change_password = TRUE RETURNING email`;
       if (!updated) throw new Error('Application password record was not updated.');
       await transaction`
         INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata)

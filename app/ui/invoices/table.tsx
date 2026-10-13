@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { UpdateInvoice, DeleteInvoice } from '@/app/ui/invoices/buttons';
+import { DownloadInvoice, UpdateInvoice, DeleteInvoice } from '@/app/ui/invoices/buttons';
 import InvoiceStatus from '@/app/ui/invoices/status';
 import { formatDateToLocal, formatCurrency } from '@/app/lib/utils';
 import { fetchFilteredInvoices } from '@/app/lib/data';
@@ -16,12 +16,12 @@ export default async function InvoicesTable({
   return (
     <div className="mt-6 flow-root">
       <div className="inline-block min-w-full align-middle">
-        <div className="rounded-lg bg-gray-50 p-2 md:pt-0">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2 shadow-sm md:pt-0">
           <div className="md:hidden">
             {invoices?.map((invoice) => (
               <div
                 key={invoice.id}
-                className="mb-2 w-full rounded-md bg-white p-4"
+                className="mb-2 w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
               >
                 <div className="flex items-center justify-between border-b pb-4">
                   <div>
@@ -47,6 +47,7 @@ export default async function InvoicesTable({
                     <p>{formatDateToLocal(invoice.date)}</p>
                   </div>
                   <div className="flex justify-end gap-2">
+                    <DownloadInvoice id={invoice.id} />
                     <UpdateInvoice id={invoice.id} />
                     <DeleteInvoice id={invoice.id} />
                   </div>
@@ -81,7 +82,7 @@ export default async function InvoicesTable({
               {invoices?.map((invoice) => (
                 <tr
                   key={invoice.id}
-                  className="w-full border-b py-3 text-sm last-of-type:border-none [&:first-child>td:first-child]:rounded-tl-lg [&:first-child>td:last-child]:rounded-tr-lg [&:last-child>td:first-child]:rounded-bl-lg [&:last-child>td:last-child]:rounded-br-lg"
+                  className="w-full border-b border-slate-100 py-3 text-sm last-of-type:border-none [&:first-child>td:first-child]:rounded-tl-xl [&:first-child>td:last-child]:rounded-tr-xl [&:last-child>td:first-child]:rounded-bl-xl [&:last-child>td:last-child]:rounded-br-xl"
                 >
                   <td className="whitespace-nowrap py-3 pl-6 pr-3">
                     <div className="flex items-center gap-3">
@@ -109,6 +110,7 @@ export default async function InvoicesTable({
                   </td>
                   <td className="whitespace-nowrap py-3 pl-6 pr-3">
                     <div className="flex justify-end gap-3">
+                      <DownloadInvoice id={invoice.id} />
                       <UpdateInvoice id={invoice.id} />
                       <DeleteInvoice id={invoice.id} />
                     </div>

@@ -99,9 +99,11 @@ const LINKS_BY_ROLE: Partial<Record<UserRole, NavSection[]>> = {
 export default function NavLinks({
   role,
   collapsed = false,
+  onNavigate,
 }: {
   role?: UserRole;
   collapsed?: boolean;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const sections = (role && LINKS_BY_ROLE[role]) || [];
@@ -123,6 +125,7 @@ export default function NavLinks({
           <Link
             key={link.name}
             href={link.href}
+            onClick={onNavigate}
             className={clsx(
               'flex h-11 shrink-0 grow items-center gap-3 whitespace-nowrap rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 md:flex-none',
               isActive
