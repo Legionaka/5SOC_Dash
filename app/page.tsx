@@ -3,7 +3,7 @@ import { getDashboardHome } from '@/app/lib/access-control';
 import AcmeLogo from '@/app/ui/acme-logo';
 import HomeHero from '@/app/ui/home-hero';
 import HomeSignInButton from '@/app/ui/home-sign-in-button';
-import HeroVideo from '@/app/ui/hero-video';
+import ImageCarousel from '@/app/ui/image-carousel';
 import { lusitana } from '@/app/ui/fonts';
 import {
   ArrowRightIcon,
@@ -44,7 +44,15 @@ export default async function Page() {
           isLoggedIn={!!session?.user}
         />
 
-        <HeroVideo />
+        <ImageCarousel
+          images={[
+            '/images/doctor-patient-consultation.jpg',
+            '/images/doctor-clipboard.jpg',
+            '/images/doctor-handshake.jpg',
+            '/images/doctor-care.jpg',
+          ]}
+          interval={5000}
+        />
       </section>
 
       <footer className="border-t border-slate-100 px-6 py-5 text-center text-sm text-slate-500">

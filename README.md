@@ -32,6 +32,30 @@ their `auth_user_id`, and prints the temporary passwords once. Add
 `--reset-existing` only when you intentionally want to reset existing Auth
 user passwords.
 
+### Reset demo accounts with SQL
+
+For a disposable demo project, run
+`supabase/demo-accounts.sql` in the Supabase SQL editor after the application
+schema and migrations `0001`, `0002`, and `0003` have been applied. It
+permanently purges all Supabase Auth users and application user profiles, then
+creates one account for every dashboard role. Do not run it against production
+or a database with real patient data.
+
+Demo login credentials:
+
+| Dashboard | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@medi-clinic.com` | `MediAdmin!2026` |
+| Doctor | `doctor@medi-clinic.com` | `MediDoctor!2026` |
+| Nurse | `nurse@medi-clinic.com` | `MediNurse!2026` |
+| Patient | `user@nextmail.com` | `MediPatient!2026` |
+| Pharmacy reception | `reception@medi-clinic.com` | `MediReception!2026` |
+| Pharmacy stock | `stocker@medi-clinic.com` | `MediStocker!2026` |
+| Pharmacist | `pharmacist@medi-clinic.com` | `MediPharmacist!2026` |
+
+These credentials are intentionally public because this is a demo project.
+Replace them and rotate all accounts before any deployment with real data.
+
 ## Role-protected routes
 
 | Role | Dashboard entry |
