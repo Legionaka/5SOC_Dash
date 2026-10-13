@@ -5,9 +5,11 @@ const colors = ['#0f766e', '#2563eb', '#d97706', '#7c3aed', '#dc2626', '#475569'
 export default function AppointmentStatusChart({
   data,
   upcomingCount,
+  isDemoData = false,
 }: {
   data: StatusCount[];
   upcomingCount?: number;
+  isDemoData?: boolean;
 }) {
   const total = data.reduce((sum, item) => sum + Number(item.count), 0);
   let cursor = 0;
@@ -19,8 +21,8 @@ export default function AppointmentStatusChart({
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-      <h3 className="font-semibold text-slate-900">What is the appointment status mix today?</h3>
-      <p className="mt-1 text-sm text-slate-500">Share of appointments by current status · {total} total</p>
+      <h3 className="font-semibold text-slate-900">{isDemoData ? 'What could the appointment status mix look like?' : 'What is the appointment status mix today?'}</h3>
+      <p className="mt-1 text-sm text-slate-500">{isDemoData ? `Fictional backup example · ${total} sample appointments` : `Share of appointments by current status · ${total} total`}</p>
       {total === 0 ? <p className="mt-6 text-sm text-slate-500">No appointments to chart today.</p> : (
         <div className="mt-5 flex flex-col items-center gap-5 sm:flex-row">
           <div
@@ -45,7 +47,7 @@ export default function AppointmentStatusChart({
         </div>
       )}
       {upcomingCount !== undefined && <p className="mt-4 text-sm text-slate-600">{upcomingCount} appointment{upcomingCount === 1 ? '' : 's'} scheduled in the next 7 days.</p>}
-      <p className="mt-4 border-t border-slate-100 pt-3 text-sm text-slate-600">Use this snapshot to identify statuses that need follow-up in the appointment queue.</p>
+      <p className="mt-4 border-t border-slate-100 pt-3 text-sm text-slate-600">{isDemoData ? 'Sample only. Live appointment counts will replace this when the database responds.' : 'Use this snapshot to identify statuses that need follow-up in the appointment queue.'}</p>
     </article>
   );
 }

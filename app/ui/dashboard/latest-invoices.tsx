@@ -4,14 +4,25 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { lusitana } from '@/app/ui/fonts';
 import { fetchLatestInvoices } from '@/app/lib/data';
+import { withTimeout } from '@/app/lib/with-timeout';
 
 export default async function LatestInvoices() {
   let latestInvoices;
   try {
-    latestInvoices = await fetchLatestInvoices();
+    latestInvoices = await withTimeout(fetchLatestInvoices(), 2500, 'Latest invoices');
   } catch (error) {
     console.error('Latest invoices unavailable:', error);
-    return <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">Latest invoices could not load. Check the database connection and refresh.</div>;
+    return (
+      <div role="status" className="w-full rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+        <h2 className="text-lg font-semibold">Latest invoices · demo preview</h2>
+        <p className="mt-1 text-xs">Fictional examples shown because the live database did not respond in 2.5 seconds.</p>
+        <ul className="mt-4 divide-y divide-amber-200">
+          <li className="flex justify-between py-3"><span>Example patient A · Paid</span><span className="font-semibold">R 850.00</span></li>
+          <li className="flex justify-between py-3"><span>Example patient B · Pending</span><span className="font-semibold">R 1,250.00</span></li>
+          <li className="flex justify-between py-3"><span>Example patient C · Paid</span><span className="font-semibold">R 620.00</span></li>
+        </ul>
+      </div>
+    );
   }
 
   return (

@@ -2,6 +2,8 @@ import { generateYAxis } from '@/app/lib/utils';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import { lusitana } from '@/app/ui/fonts';
 import { fetchRevenue } from '@/app/lib/data';
+import { dashboardDemoRevenue } from '@/app/lib/dashboard-demo-data';
+import { withTimeout } from '@/app/lib/with-timeout';
 
 // This component is representational only.
 // For data visualization UI, check out:
@@ -11,11 +13,13 @@ import { fetchRevenue } from '@/app/lib/data';
 
 export default async function RevenueChart() {
   let revenue;
+  let isDemoData = false;
   try {
-    revenue = await fetchRevenue();
+    revenue = await withTimeout(fetchRevenue(), 2500, 'Revenue chart');
   } catch (error) {
     console.error('Revenue chart unavailable:', error);
-    return <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">Revenue chart data is unavailable. Check the database connection and refresh.</div>;
+    revenue = dashboardDemoRevenue;
+    isDemoData = true;
   }
 
   const chartHeight = 350;
@@ -28,8 +32,9 @@ export default async function RevenueChart() {
   return (
     <div className="w-full">
       <h2 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>
-        How has monthly revenue changed over the last year?
+        {isDemoData ? 'What could monthly revenue look like over a year?' : 'How has monthly revenue changed over the last year?'}
       </h2>
+      {isDemoData && <p role="status" className="mb-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-950">Fictional backup data · live database did not respond in 2.5 seconds.</p>}
       <div className="rounded-xl bg-gray-50 p-4">
         <div className="sm:grid-cols-13 mt-0 grid grid-cols-12 items-end gap-2 rounded-md bg-white p-4 md:gap-4">
           <p className="col-span-full text-xs font-medium text-gray-500">Revenue (ZAR)</p>
@@ -61,7 +66,7 @@ export default async function RevenueChart() {
           <p className="col-span-full text-center text-xs font-medium text-gray-500">Month</p>
         </div>
         <p className="mt-2 text-xs text-gray-500">Zero baseline: R0</p>
-        <p className="mt-3 text-sm text-gray-600">Use the month-to-month pattern to spot changes in billed revenue and decide when to review clinic demand or billing follow-up.</p>
+        <p className="mt-3 text-sm text-gray-600">{isDemoData ? 'Sample only. Live revenue figures will replace this when the database responds.' : 'Use the month-to-month pattern to spot changes in billed revenue and decide when to review clinic demand or billing follow-up.'}</p>
         <div className="flex items-center pb-2 pt-6">
           <CalendarIcon className="h-5 w-5 text-gray-500" />
           <h3 className="ml-2 text-sm text-gray-500 ">Last 12 months</h3>
