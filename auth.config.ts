@@ -30,8 +30,11 @@ export const authConfig = {
     },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
-      if (nextUrl.pathname === '/change-password') {
+      // Normalize the pathname so a deployment that adds a trailing slash does
+      // not bypass the generic-dashboard redirect or access checks.
+      const pathname = nextUrl.pathname.replace(/\/+$/, '') || '/';
+      const isOnDashboard = pathname.startsWith('/dashboard');
+      if (pathname === '/change-password') {
         if (!isLoggedIn) return false;
         if (auth.user.mustChangePassword !== true) {
           return Response.redirect(new URL(getDashboardHome(auth.user.role), nextUrl));
@@ -46,20 +49,20 @@ export const authConfig = {
 
         const role = auth.user.role;
         const email = auth.user.email;
-        if (nextUrl.pathname === '/dashboard' && role !== 'admin') {
+        if (pathname === '/dashboard' && role !== 'admin') {
           const home = getDashboardHome(role);
           if (home !== '/unauthorized') {
             return Response.redirect(new URL(home, nextUrl));
           }
         }
 
-        if (!canAccessDashboardRoute(role, email, nextUrl.pathname)) {
+        if (!canAccessDashboardRoute(role, email, pathname)) {
           return Response.redirect(new URL('/unauthorized', nextUrl));
         }
         return true;
       }
 
-      if (nextUrl.pathname === '/login' && isLoggedIn) {
+      if (pathname === '/login' && isLoggedIn) {
         if (auth.user.mustChangePassword === true) {
           return Response.redirect(new URL('/change-password', nextUrl));
         }
