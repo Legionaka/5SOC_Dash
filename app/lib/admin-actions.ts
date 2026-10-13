@@ -7,7 +7,6 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createAdminClient } from '@/app/lib/supabase/admin';
-import { createClient } from '@/app/lib/supabase/server';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const StaffSchema = z.object({
@@ -181,27 +180,37 @@ export async function changeTemporaryPassword(_previous: string | undefined, for
   });
   if (!parsed.success) return parsed.error.issues[0]?.message ?? 'Check the password fields.';
   if (parsed.data.currentPassword === parsed.data.newPassword) return 'Choose a new password different from the temporary password.';
+  const supabaseAdmin = createAdminClient();
+  let authPasswordUpdated = false;
   try {
     const password = await bcrypt.hash(parsed.data.newPassword, 12);
-    const changed = await sql.begin(async (transaction) => {
+    const result = await sql.begin(async (transaction) => {
       const [account] = await transaction`SELECT password FROM users WHERE email = ${accountEmail} AND must_change_password = TRUE LIMIT 1 FOR UPDATE`;
-      if (!account || !(await bcrypt.compare(parsed.data.currentPassword, account.password))) return false;
+      if (!account) return 'already-changed';
+      if (!(await bcrypt.compare(parsed.data.currentPassword, account.password))) return 'invalid-current-password';
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(session.user.id, {
+        password: parsed.data.newPassword,
+      });
+      if (authError) throw new Error(`Supabase password update failed: ${authError.message}`);
+      authPasswordUpdated = true;
       const [updated] = await transaction`UPDATE users SET password = ${password}, must_change_password = FALSE WHERE email = ${accountEmail} AND must_change_password = TRUE RETURNING email`;
-      if (!updated) return false;
+      if (!updated) throw new Error('Application password record was not updated.');
       await transaction`
         INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata)
         VALUES (${accountEmail}, ${session.user.role ?? 'staff'}, 'staff_account.password_changed', 'user', ${accountEmail}, '{}'::jsonb)
       `;
-      return true;
+      return 'changed';
     });
-    if (!changed) return 'The temporary password is incorrect or has already been changed.';
-
-    const supabase = await createClient();
-    const { error: authError } = await supabase.auth.updateUser({ password: parsed.data.newPassword });
-    if (authError) return 'The application password could not be updated. Please contact an administrator.';
+    if (result === 'already-changed') return 'This password change is no longer required.';
+    if (result === 'invalid-current-password') return 'The temporary password is incorrect.';
   } catch (error) {
+    if (authPasswordUpdated) {
+      await supabaseAdmin.auth.admin.updateUserById(session.user.id, {
+        password: parsed.data.currentPassword,
+      });
+    }
     console.error('Temporary password update failed:', error);
-    return 'We could not update the password. Please try again.';
+    return 'We could not update the password. No password change was saved.';
   }
   await signOut({ redirectTo: '/login?passwordUpdated=1' });
   redirect('/login?passwordUpdated=1');

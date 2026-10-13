@@ -1,0 +1,8 @@
+id,name,email,password,role,must_change_password,auth_user_id
+6b5d4c44-6c2c-4cc5-9d59-6cbb7b8a0001,Demo Admin,admin@medi-clinic.com,$2b$10$q5RQiwbM.RLw3uuVKrqyb.CqZHHFWVE0VKnlQiGlQaW9FN8DISXqW,admin,true,
+6b5d4c44-6c2c-4cc5-9d59-6cbb7b8a0002,Demo Doctor,doctor@medi-clinic.com,$2b$10$g73ClEJUis/RpOv2HWH7feT7nq0fNK.OWAk8CEfBe/SCHyzK6PeSK,doctor,true,
+6b5d4c44-6c2c-4cc5-9d59-6cbb7b8a0003,Demo Nurse,nurse@medi-clinic.com,$2b$10$CS7QhEx2tIf9oDsdL1IG6.ZNtecvV72RNjcgCvOBqjzuGuYVmvg6O,nurse,true,
+410544b2-4001-4271-9855-fec4b6a6442a,Demo Patient,user@nextmail.com,$2b$10$EkxxY0LPQ0on3Rq7vlABB.q.A544yMj8MjA14SUs1dU4VyxkBmTHK,patient,false,
+6b5d4c44-6c2c-4cc5-9d59-6cbb7b8a0004,Pharmacy Reception,reception@medi-clinic.com,$2b$10$4Sh5fzrNYa2gF845zU7uAezXfmgBa3JDRtI4o4KcXrLB4DzDiyie2,pharmacy_reception,true,
+6b5d4c44-6c2c-4cc5-9d59-6cbb7b8a0005,Pharmacy Stocker,stocker@medi-clinic.com,$2b$10$AGPia.Pz6NOHMD9AJ6895ePfGv6fwa6WSwTDTNHXSi3Mx1Wgae6dC,pharmacy_stocker,true,
+6b5d4c44-6c2c-4cc5-9d59-6cbb7b8a0006,Demo Pharmacist,pharmacist@medi-clinic.com,$2b$10$B1pnA7jTr759ppCb2VOsWuSLrgRAhS/giJ3nBCHvHMytvxJkxEhKG,pharmacist,true,

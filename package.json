@@ -1,6 +1,7 @@
 {
   "private": true,
   "scripts": {
+    "auth:import-users": "node scripts/import-auth-users.mjs",
     "build": "next build",
     "dev": "next dev --turbopack",
     "start": "next start"

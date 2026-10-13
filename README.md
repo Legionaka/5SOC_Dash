@@ -25,6 +25,13 @@ profile through the admin staff screen. Existing demo users must be recreated
 in Supabase Auth because their old application passwords are not Supabase Auth
 credentials.
 
+To provision every account from `supabase/users.csv`, run
+`npm run auth:import-users`. The script uses the server-only service-role key,
+creates missing Supabase Auth users with generated temporary passwords, links
+their `auth_user_id`, and prints the temporary passwords once. Add
+`--reset-existing` only when you intentionally want to reset existing Auth
+user passwords.
+
 ## Role-protected routes
 
 | Role | Dashboard entry |
