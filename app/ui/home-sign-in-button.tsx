@@ -5,7 +5,7 @@ export default function HomeSignInButton() {
     <button
       type="button"
       onClick={() => window.dispatchEvent(new Event('medi-clinic:show-login'))}
-      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-teal-700 hover:text-teal-800"
+      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#c9d7cf] bg-white/70 px-5 text-sm font-semibold text-[#285752] transition hover:border-[#397b70] hover:bg-white"
     >
       Sign in
       <svg
