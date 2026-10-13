@@ -2,7 +2,13 @@ type StatusCount = { status: string; count: number };
 
 const colors = ['#0f766e', '#2563eb', '#d97706', '#7c3aed', '#dc2626', '#475569'];
 
-export default function AppointmentStatusChart({ data }: { data: StatusCount[] }) {
+export default function AppointmentStatusChart({
+  data,
+  upcomingCount,
+}: {
+  data: StatusCount[];
+  upcomingCount?: number;
+}) {
   const total = data.reduce((sum, item) => sum + Number(item.count), 0);
   let cursor = 0;
   const segments = data.map((item, index) => {
@@ -38,6 +44,7 @@ export default function AppointmentStatusChart({ data }: { data: StatusCount[] }
           </ul>
         </div>
       )}
+      {upcomingCount !== undefined && <p className="mt-4 text-sm text-slate-600">{upcomingCount} appointment{upcomingCount === 1 ? '' : 's'} scheduled in the next 7 days.</p>}
       <p className="mt-4 border-t border-slate-100 pt-3 text-sm text-slate-600">Use this snapshot to identify statuses that need follow-up in the appointment queue.</p>
     </article>
   );

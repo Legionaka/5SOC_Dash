@@ -57,13 +57,13 @@ export default async function Page() {
               className="object-cover object-center"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#112c2a]/60 via-transparent to-[#112c2a]/5" />
-            <div className="absolute bottom-6 left-6 right-6 text-white sm:bottom-9 sm:left-9 sm:right-auto sm:max-w-sm">
+            <div className="absolute bottom-7 left-6 right-6 text-white sm:bottom-9 sm:left-9 sm:right-auto sm:max-w-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/75">Made for the moments that matter</p>
               <p className="mt-2 text-2xl font-semibold leading-tight sm:text-3xl">More connected care, from first visit to follow-up.</p>
             </div>
           </div>
 
-          <div className="relative mx-5 -mt-5 grid grid-cols-2 gap-3 sm:absolute sm:-left-12 sm:bottom-12 sm:mt-0 sm:w-[calc(100%+3rem)] sm:max-w-[400px] sm:translate-y-1/2">
+          <div className="mt-4 grid grid-cols-2 gap-3">
             <article className="rounded-2xl border border-[#e1e6df] bg-white p-4 shadow-[0_18px_35px_-24px_rgba(15,40,37,0.5)] sm:p-5">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#e9f1eb] text-[#28605a]"><CalendarDaysIcon className="h-5 w-5" /></span>
               <h2 className="mt-3 text-sm font-semibold text-[#193b39]">Appointments</h2>
