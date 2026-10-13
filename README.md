@@ -1,8 +1,29 @@
 # Medi-Clinic Dashboard
 
-This project uses Supabase Auth for passwords and cookie-based sessions. The
-application role remains in the server-side `users` record and controls which
-dashboard a signed-in user can access.
+Medi-Clinic is a role-based clinic portal for patients and care teams. Patients
+can manage appointments, view records and invoices, and use the wallet view;
+staff dashboards support clinical workflows, scheduling, pharmacy operations,
+and billing. The admin dashboard includes revenue and appointment-status
+charts. This is a demonstration system and has not been verified for
+production use with real patient data.
+
+## Live demo
+
+**Production URL:** Not configured in this repository. Add the deployed URL
+after confirming it opens signed out and that each demo account reaches its
+intended dashboard.
+
+## Stack and why
+
+- **Next.js App Router and React:** server-rendered role dashboards and route handlers.
+- **Supabase Auth:** hosted identity, password management, and cookie sessions.
+- **PostgreSQL:** relational application records and SQL reporting.
+- **Tailwind CSS:** responsive styling.
+- **PDFKit:** server-side invoice PDF generation.
+
+The application uses server-rendered authorization and server actions. Its
+data layer connects directly to PostgreSQL; RLS policies cover Supabase API
+requests but do not prove isolation for that privileged connection.
 
 ## Database setup
 
@@ -13,8 +34,10 @@ Set `POSTGRES_URL`, `NEXT_PUBLIC_SUPABASE_URL`,
 Create the remaining application tables through your schema deployment (or,
 for local development only, the protected seed endpoint), then run
 `supabase/migrations/0002_rls_policies.sql` to enable least-privilege Row Level
-Security for every application table. The RLS migration expects all tables
-created by `app/seed/route.ts` to already exist.
+Security for every application table. Then apply migrations `0003_security_hardening.sql`
+and `0004_invoice_customer_fk.sql`. The RLS migration expects all tables
+created by `app/seed/route.ts` to already exist. The invoice/customer migration
+validates existing records and fails if an invoice references a missing customer.
 
 For local development only, set `SEED_SECRET` and call `/seed` with the
 `x-seed-secret` header to create the application tables and sample data. The
@@ -98,3 +121,33 @@ Invoices can be downloaded from the admin and patient invoice screens. The
 authenticated `/api/invoices/[id]/pdf` route checks role or patient ownership,
 generates a branded PDF with PDFKit, and records the download in `audit_logs`.
 PDFs are generated on demand and returned with private, non-cacheable headers.
+
+## Known limitations and next steps
+
+- Validate chart data and labels against the deployed database before
+  presenting them as operational evidence.
+- Two-user isolation still needs a check against the deployed Supabase API
+  using separate accounts. The server-side SQL connection uses a separate
+  privileged path protected by application authorization checks.
+- No production URL or deployment verification is recorded in this repository.
+- Provider-side MFA, email, breached-password, SMTP, and rate-limit settings
+  require configuration in Supabase.
+- [`misc/proposal.md`](misc/proposal.md) describes planned integrations and
+  controls that are not all implemented; see its status section.
+
+Next steps: configure and smoke-test a deployed URL, record two-user access
+checks against Supabase, and implement or defer the remaining proposal items.
+
+## Local run
+
+Prerequisites: Node.js, npm, PostgreSQL, and a Supabase project.
+
+1. Install dependencies with `npm install`.
+2. Configure the environment variables described under Database setup in
+   `.env.local`.
+3. Apply the SQL migrations in order after creating the application tables.
+4. Start the development server with `npm run dev` and open
+   `http://localhost:3000`.
+
+For optional sample data, follow the protected seed endpoint instructions
+above. Never use purge/reset options against a production or real-data database.

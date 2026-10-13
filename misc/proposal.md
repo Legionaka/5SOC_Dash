@@ -2,6 +2,37 @@
 
 This proposal outlines the implementation strategy, security frameworks, and system layout for the unified Medi-Clinic platform. It details the integrations for Supabase storage, Next.js dashboard routing, wallet architectures, appointment logic, scheduling matrix, role-based workflows, and legal audit guidelines.
 
+## Intended audience and dashboard questions
+
+**Audience:** clinic administrators and the capstone assessment panel. The
+dashboard is intended to help administrators monitor billing and the day's
+appointment flow.
+
+The two dashboard charts answer:
+
+1. **How has monthly revenue changed over the last year?** A bar chart shows
+   revenue in ZAR by month, with the baseline at zero. It is implemented using
+   the current `revenue` table; confirm its freshness and provenance in the
+   deployed database before treating it as operational reporting.
+2. **What is the appointment status mix today?** A donut chart shows the count
+   and share of today's appointments by status. It is implemented from current
+   appointment records.
+
+## Implementation status
+
+This proposal includes both implemented features and future design goals. The
+repository currently implements role dashboards, appointment and pharmacy
+workflows, patient records, invoices and invoice PDFs, wallet transactions
+display, audit logging, revenue and appointment-status charts, and database
+RLS policies. The following proposal items are not implemented or are not
+verified as described: Supabase Storage buckets and signed URLs; payment
+gateway processing and automatic wallet refunds; payment receipt email
+delivery; realtime subscriptions; automatic appointment recommendations and
+daily booking caps; an immutable wallet ledger; comprehensive legal retention
+and signed clinical-note locking; and an integrated live chat/phone support
+system. Provider-side MFA and email protections also require external Supabase
+configuration. Do not treat these design descriptions as delivered behavior.
+
 ---
 
 ## 1. Authentication, RBAC & Route Protection
