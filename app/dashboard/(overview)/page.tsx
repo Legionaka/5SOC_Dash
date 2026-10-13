@@ -9,11 +9,14 @@ import {
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { fetchAdminDashboardData, fetchAdminOperationsReport } from '@/app/lib/data';
+import { getDashboardHome } from '@/app/lib/access-control';
 import Link from 'next/link';
 
 export default async function Page() {
   const session = await auth();
-  if (session?.user.role !== 'admin') redirect('/unauthorized');
+  if (!session?.user) redirect('/login');
+  if (session.user.mustChangePassword) redirect('/change-password');
+  if (session.user.role !== 'admin') redirect(getDashboardHome(session.user.role));
   const [operations, report] = await Promise.all([fetchAdminDashboardData(), fetchAdminOperationsReport()]);
   const metrics = [
     { label: "Today's appointments", value: operations.appointments, detail: `${operations.checkedIn} checked in` },

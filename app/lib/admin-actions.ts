@@ -6,6 +6,8 @@ import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { createAdminClient } from '@/app/lib/supabase/admin';
+import { createClient } from '@/app/lib/supabase/server';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const StaffSchema = z.object({
@@ -22,13 +24,31 @@ export async function createStaffAccount(input: z.infer<typeof StaffSchema>) {
   if (session?.user.role !== 'admin' || !actorEmail || !parsed.success) {
     return { success: false, message: 'Enter valid staff details. Admin access is required.' };
   }
+  const normalizedEmail = parsed.data.email.toLowerCase();
+  const supabaseAdmin = createAdminClient();
+  const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: normalizedEmail,
+    password: parsed.data.temporaryPassword,
+    email_confirm: true,
+    user_metadata: { name: parsed.data.name },
+  });
+  if (authError || !authUser.user) {
+    if (authError?.message.toLowerCase().includes('already')) {
+      return { success: false, message: 'An account already uses that email address.' };
+    }
+    console.error('Supabase staff account creation failed:', authError);
+    return { success: false, message: 'We could not create this staff account.' };
+  }
   try {
     const password = await bcrypt.hash(parsed.data.temporaryPassword, 12);
     const created = await sql.begin(async (transaction) => {
       const [account] = await transaction`
         INSERT INTO users (name, email, password, role, must_change_password)
-        VALUES (${parsed.data.name}, ${parsed.data.email.toLowerCase()}, ${password}, ${parsed.data.role}, TRUE)
+        VALUES (${parsed.data.name}, ${normalizedEmail}, ${password}, ${parsed.data.role}, TRUE)
         RETURNING id, email, role
+      `;
+      await transaction`
+        UPDATE users SET auth_user_id = ${authUser.user.id} WHERE id = ${account.id}
       `;
       await transaction`
         INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata)
@@ -40,6 +60,7 @@ export async function createStaffAccount(input: z.infer<typeof StaffSchema>) {
     revalidatePath('/dashboard');
     return { success: true, message: `Account created for ${created.email}. Share the temporary password securely; the user must change it on first sign-in.` };
   } catch (error) {
+    await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
     if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
       return { success: false, message: 'An account already uses that email address.' };
     }
@@ -174,6 +195,10 @@ export async function changeTemporaryPassword(_previous: string | undefined, for
       return true;
     });
     if (!changed) return 'The temporary password is incorrect or has already been changed.';
+
+    const supabase = await createClient();
+    const { error: authError } = await supabase.auth.updateUser({ password: parsed.data.newPassword });
+    if (authError) return 'The application password could not be updated. Please contact an administrator.';
   } catch (error) {
     console.error('Temporary password update failed:', error);
     return 'We could not update the password. Please try again.';

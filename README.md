@@ -1,17 +1,29 @@
 # Medi-Clinic Dashboard
 
-This project uses Auth.js credentials authentication with roles stored on each
-`users` record. The database seed endpoint creates or migrates the `users.role`
-column; existing users receive the `patient` role unless assigned a different
-role explicitly.
+This project uses Supabase Auth for passwords and cookie-based sessions. The
+application role remains in the server-side `users` record and controls which
+dashboard a signed-in user can access.
 
 ## Database setup
 
-Set `POSTGRES_URL` in `.env.local`, start the app, and open `/seed` once to
-create the `users`, `customers`, `invoices`, and `revenue` tables and insert
-the sample data. Wait for the “Database seeded successfully” response before
-logging in or opening dashboard pages. The seed initializes tables in order so
-the dashboard does not query a relation before it has been created.
+Set `POSTGRES_URL`, `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in
+`.env.local`. Run the SQL in
+`supabase/migrations/0001_supabase_auth_bridge.sql` in the Supabase SQL editor.
+Create the remaining application tables through your schema deployment (or,
+for local development only, the protected seed endpoint), then run
+`supabase/migrations/0002_rls_policies.sql` to enable least-privilege Row Level
+Security for every application table. The RLS migration expects all tables
+created by `app/seed/route.ts` to already exist.
+
+For local development only, set `SEED_SECRET` and call `/seed` with the
+`x-seed-secret` header to create the application tables and sample data. The
+seed endpoint is disabled in production.
+
+Create or invite Auth users in Supabase, then create the matching application
+profile through the admin staff screen. Existing demo users must be recreated
+in Supabase Auth because their old application passwords are not Supabase Auth
+credentials.
 
 ## Role-protected routes
 
@@ -19,13 +31,12 @@ the dashboard does not query a relation before it has been created.
 | --- | --- |
 | `admin` | `/dashboard`, including invoices and customers |
 | `doctor` | `/dashboard/doctor` |
+| `nurse` | `/dashboard/nurse` |
 | `patient` | `/dashboard/user` |
 | `pharmacy_reception` | `/dashboard/pharmacy/reception` |
 | `pharmacy_stocker` | `/dashboard/pharmacy/stock` |
 | `pharmacist` | `/dashboard/pharmacy/pharmacist` |
 
-The patient test route is restricted to the exact `user@nextmail.com` account
-and the `patient` role. Unauthorized dashboard access redirects to
-`/unauthorized`. Role changes take effect after the account signs in again.
-
-For more information, see the [course curriculum](https://nextjs.org/learn) on the Next.js Website.
+Authorization is enforced in server-rendered pages and server actions. The
+Next.js proxy refreshes Supabase Auth cookies and blocks unauthenticated access
+to protected routes.

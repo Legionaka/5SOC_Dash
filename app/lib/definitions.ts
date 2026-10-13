@@ -1,5 +1,3 @@
-import type { DefaultSession } from 'next-auth';
-
 export const USER_ROLES = [
   'admin',
   'doctor',
@@ -24,20 +22,6 @@ export type User = {
   role: UserRole;
   must_change_password?: boolean;
 };
-
-declare module 'next-auth' {
-  interface User {
-    role?: UserRole;
-    mustChangePassword?: boolean;
-  }
-
-  interface Session {
-    user: {
-      role?: UserRole;
-      mustChangePassword?: boolean;
-    } & DefaultSession['user'];
-  }
-}
 
 export type Customer = {
   id: string;

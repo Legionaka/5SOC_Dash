@@ -29,6 +29,7 @@ async function seedUsers() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_contact_method TEXT NOT NULL DEFAULT 'email'`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS data_sharing_consent BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE`;
 
   const insertedUsers = await Promise.all(
     users.map(async (user) => {
@@ -463,7 +464,16 @@ async function seedRevenue() {
   return insertedRevenue;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const seedSecret = process.env.SEED_SECRET;
+  if (
+    process.env.NODE_ENV === 'production' ||
+    !seedSecret ||
+    request.headers.get('x-seed-secret') !== seedSecret
+  ) {
+    return Response.json({ error: 'Not found.' }, { status: 404 });
+  }
+
   try {
     await seedUsers();
     await seedCustomers();
@@ -476,6 +486,7 @@ export async function GET() {
 
     return Response.json({ message: 'Database seeded successfully' });
   } catch (error) {
-    return Response.json({ error }, { status: 500 });
+    console.error('Database seed failed:', error);
+    return Response.json({ error: 'Database seed failed.' }, { status: 500 });
   }
 }

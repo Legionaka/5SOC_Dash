@@ -4,8 +4,9 @@ import { z } from 'zod';
 import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { auth, signIn } from '@/auth';
-import { AuthError } from 'next-auth';
+import { auth } from '@/auth';
+import { createClient } from '@/app/lib/supabase/server';
+import { getDashboardHome } from '@/app/lib/access-control';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -130,17 +131,19 @@ export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
 ) {
-  try {
-    await signIn('credentials', formData);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return 'Invalid credentials.';
-        default:
-          return 'Something went wrong.';
-      }
-    }
-    throw error;
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
+  if (!email || password.length < 6) return 'Invalid credentials.';
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return 'Invalid credentials.';
+
+  const session = await auth();
+  if (!session) {
+    await supabase.auth.signOut();
+    return 'Your account is not configured for this application.';
   }
+  if (session.user.mustChangePassword) redirect('/change-password');
+  redirect(getDashboardHome(session.user.role));
 }
