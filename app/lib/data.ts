@@ -10,7 +10,11 @@ import {
 import { formatCurrency } from './utils';
 import { ensurePharmacyInventorySchema } from './pharmacy-schema';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, {
+  ssl: 'require',
+  connect_timeout: 8,
+  connection: { statement_timeout: 10000 },
+});
 
 export async function fetchRevenue() {
   try {

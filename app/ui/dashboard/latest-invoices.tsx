@@ -6,7 +6,13 @@ import { lusitana } from '@/app/ui/fonts';
 import { fetchLatestInvoices } from '@/app/lib/data';
 
 export default async function LatestInvoices() {
-  const latestInvoices = await fetchLatestInvoices();
+  let latestInvoices;
+  try {
+    latestInvoices = await fetchLatestInvoices();
+  } catch (error) {
+    console.error('Latest invoices unavailable:', error);
+    return <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">Latest invoices could not load. Check the database connection and refresh.</div>;
+  }
 
   return (
     <div className="flex w-full flex-col md:col-span-4">
