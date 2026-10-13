@@ -34,12 +34,18 @@ user passwords.
 
 ### Reset demo accounts with SQL
 
-For a disposable demo project, run
-`supabase/demo-accounts.sql` in the Supabase SQL editor after the application
-schema and migrations `0001`, `0002`, and `0003` have been applied. It
-permanently purges all Supabase Auth users and application user profiles, then
-creates one account for every dashboard role. Do not run it against production
-or a database with real patient data.
+For a disposable demo project, first run
+`supabase/demo-accounts.sql` in the Supabase SQL editor to remove any Auth
+users created by the old direct-insert script. Then run this from the project
+root:
+
+`npm run auth:import-users -- --purge-existing --demo-passwords`
+
+The import command uses the Supabase Admin Auth API for valid Auth accounts and
+the configured `POSTGRES_URL` for application profiles. This matters when
+Supabase Auth and the application database are separate services, as they are
+in this project. Do not run the purge against production or a database with
+real patient data.
 
 Demo login credentials:
 

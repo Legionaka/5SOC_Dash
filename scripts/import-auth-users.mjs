@@ -12,6 +12,8 @@ if (typeof process.loadEnvFile === 'function') {
 
 const csvPath = path.resolve('supabase/users.csv');
 const resetExisting = process.argv.includes('--reset-existing');
+const purgeExisting = process.argv.includes('--purge-existing');
+const useDemoPasswords = process.argv.includes('--demo-passwords');
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const postgresUrl = process.env.POSTGRES_URL;
@@ -33,6 +35,23 @@ function temporaryPassword() {
   return `${crypto.randomBytes(12).toString('base64url')}A9!`;
 }
 
+const demoPasswords = {
+  admin: 'MediAdmin!2026',
+  doctor: 'MediDoctor!2026',
+  nurse: 'MediNurse!2026',
+  patient: 'MediPatient!2026',
+  pharmacy_reception: 'MediReception!2026',
+  pharmacy_stocker: 'MediStocker!2026',
+  pharmacist: 'MediPharmacist!2026',
+};
+
+function newPassword(row) {
+  if (!useDemoPasswords) return temporaryPassword();
+  const password = demoPasswords[row.role];
+  if (!password) throw new Error(`No demo password configured for role ${row.role}`);
+  return password;
+}
+
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
@@ -42,14 +61,22 @@ const { data: listedUsers, error: listError } = await supabase.auth.admin.listUs
 if (listError) throw listError;
 
 try {
+  if (purgeExisting) {
+    for (const user of listedUsers.users) {
+      const result = await supabase.auth.admin.deleteUser(user.id);
+      if (result.error) throw result.error;
+    }
+    await sql`DELETE FROM users`;
+  }
+
   for (const row of rows) {
     const email = row.email.toLowerCase();
-    const existing = listedUsers.users.find((user) => user.email?.toLowerCase() === email);
+    const existing = purgeExisting ? null : listedUsers.users.find((user) => user.email?.toLowerCase() === email);
     let authUser = existing;
     let password = null;
 
     if (!authUser) {
-      password = temporaryPassword();
+      password = newPassword(row);
       const result = await supabase.auth.admin.createUser({
         email,
         password,
@@ -60,7 +87,7 @@ try {
       authUser = result.data.user;
       console.log(`${email}\t${password}`);
     } else if (resetExisting) {
-      password = temporaryPassword();
+      password = newPassword(row);
       const result = await supabase.auth.admin.updateUserById(authUser.id, { password });
       if (result.error) throw result.error;
       console.log(`${email}\t${password}`);
