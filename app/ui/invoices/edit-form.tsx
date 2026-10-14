@@ -44,7 +44,7 @@ export default function EditInvoiceForm({
               </option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
-                  {customer.name}
+                  {customer.name}{customer.email ? ` — ${customer.email}${customer.email.endsWith('@example.com') ? ' (Demo patient)' : ''}` : ''}
                 </option>
               ))}
             </select>

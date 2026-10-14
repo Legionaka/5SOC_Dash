@@ -74,4 +74,16 @@ ON CONFLICT (email) DO UPDATE SET
   preferred_contact_method = EXCLUDED.preferred_contact_method,
   data_sharing_consent = EXCLUDED.data_sharing_consent,
   active = EXCLUDED.active;
+
+-- Keep the demo patient accounts available to the invoice workflow as well.
+-- Invoices reference public.customers, so a users row alone cannot be selected
+-- as an invoice customer without violating invoices_customer_id_fkey.
+INSERT INTO public.customers (id, name, email, image_url)
+VALUES
+  ('a4d8d89f-7b7d-4b84-bc2e-7a2a4a000001', 'Amina Khumalo', 'amina.khumalo@example.com', '/customers/evil-rabbit.png'),
+  ('a4d8d89f-7b7d-4b84-bc2e-7a2a4a000002', 'Daniel Naidoo', 'daniel.naidoo@example.com', '/customers/delba-de-oliveira.png')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  email = EXCLUDED.email,
+  image_url = EXCLUDED.image_url;
                                                                                                                                                                                                     
