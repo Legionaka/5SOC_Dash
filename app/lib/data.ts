@@ -7,7 +7,7 @@ import {
   LatestInvoiceRaw,
   Revenue,
 } from './definitions';
-import { formatCurrency } from './utils';
+import { formatCurrency, formatDateValue } from './utils';
 import { ensurePharmacyInventorySchema } from './pharmacy-schema';
 
 const sql = postgres(process.env.POSTGRES_URL!, {
@@ -245,7 +245,7 @@ export async function fetchPatientDashboardData(email: string) {
       doctorId: appointment.doctor_id ? String(appointment.doctor_id) : null,
       doctor: appointment.doctor_name,
       specialty: appointment.specialty,
-      date: String(appointment.appointment_date),
+      date: formatDateValue(appointment.appointment_date),
       time: appointment.appointment_time,
       reason: appointment.reason,
       status: appointment.status,
@@ -260,10 +260,10 @@ export async function fetchPatientDashboardData(email: string) {
         { label: 'Notifications', value: String(unreadNotifications[0]?.count ?? 0), detail: 'Unread updates from your clinic.' },
         { label: 'Care plan', value: medicalRecords.some((record) => /care plan/i.test(record.record_type) || /care plan/i.test(record.title)) ? 'Available' : 'Not available', detail: 'A clinician shares a care plan when one is needed.' },
       ],
-      medicalRecords: medicalRecords.map((record) => ({ id: String(record.id), type: record.record_type, title: record.title, summary: record.summary, status: record.status, date: String(record.recorded_at) })),
+      medicalRecords: medicalRecords.map((record) => ({ id: String(record.id), type: record.record_type, title: record.title, summary: record.summary, status: record.status, date: formatDateValue(record.recorded_at) })),
       recordsUpdatedAt: medicalRecords[0]?.recorded_at ? String(medicalRecords[0].recorded_at) : null,
       upcomingAppointments: formattedAppointments,
-      appointmentHistory: appointmentHistory.map((item) => ({ id: String(item.id), doctor: item.doctor_name, specialty: item.specialty, date: String(item.appointment_date), time: item.appointment_time, status: item.status })),
+      appointmentHistory: appointmentHistory.map((item) => ({ id: String(item.id), doctor: item.doctor_name, specialty: item.specialty, date: formatDateValue(item.appointment_date), time: item.appointment_time, status: item.status })),
       walletSummary: [
         { label: 'Wallet Balance', value: money(wallet?.total), tone: 'emerald' },
         { label: 'Paid This Month', value: money(wallet?.paid), tone: 'blue' },

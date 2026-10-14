@@ -7,6 +7,15 @@ export const formatCurrency = (amount: number) => {
   });
 };
 
+export const formatDateValue = (value: unknown) => {
+  const raw = value instanceof Date ? value.toISOString() : String(value);
+  const isoDate = raw.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+  if (isoDate) return isoDate;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  return date.toISOString().slice(0, 10);
+};
+
 export const formatDateToLocal = (
   dateStr: string,
   locale: string = 'en-US',
