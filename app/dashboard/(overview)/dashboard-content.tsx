@@ -12,7 +12,7 @@ import { dashboardDemoOperations, dashboardDemoReport, type AdminReport } from '
 const DATABASE_WAIT_MS = 8000;
 
 export function OperationsSummarySkeleton() {
-  return <section aria-label="Loading clinic operations" className="grid animate-pulse gap-3 min-[520px]:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-32 rounded-2xl bg-slate-100" />)}</section>;
+  return <section aria-label="Loading clinic operations" aria-live="polite" className="space-y-3"><p className="text-sm font-medium text-slate-600">Loading today&apos;s clinic operations…</p><div className="grid animate-pulse gap-3 min-[520px]:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-32 rounded-2xl border border-slate-200 bg-white p-5"><div className="h-4 w-32 rounded bg-slate-200" /><div className="mt-4 h-8 w-16 rounded bg-slate-100" /><div className="mt-3 h-3 w-24 rounded bg-slate-100" /></div>)}</div></section>;
 }
 
 export async function OperationsSummary() {

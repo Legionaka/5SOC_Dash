@@ -6,7 +6,7 @@ import { getDashboardHome } from '@/app/lib/access-control';
 import { AdminInsights, OperationsSummary, OperationsSummarySkeleton } from './dashboard-content';
 
 function InsightsSkeleton() {
-  return <section aria-label="Loading dashboard insights" className="grid animate-pulse gap-6 xl:grid-cols-2"><div className="h-[420px] rounded-2xl bg-slate-100" /><div className="h-[420px] rounded-2xl bg-slate-100" /></section>;
+  return <section aria-label="Loading dashboard insights" aria-live="polite" role="status" className="space-y-4"><div className="flex items-center gap-3 rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3 text-sm text-teal-950"><span className="h-3 w-3 animate-pulse rounded-full bg-teal-600" /><span>Loading live dashboard data. Backup data will appear automatically if the database takes too long.</span></div><div className="grid animate-pulse gap-6 xl:grid-cols-2"><div className="h-[420px] rounded-2xl border border-slate-200 bg-white p-5"><div className="h-5 w-48 rounded bg-slate-200" /><div className="mt-3 h-4 w-72 rounded bg-slate-100" /><div className="mt-8 h-64 rounded-xl bg-slate-100" /><div className="mt-5 h-4 w-36 rounded bg-slate-100" /></div><div className="h-[420px] rounded-2xl border border-slate-200 bg-white p-5"><div className="h-5 w-56 rounded bg-slate-200" /><div className="mt-3 h-4 w-64 rounded bg-slate-100" /><div className="mt-8 flex items-center justify-center"><div className="h-48 w-48 rounded-full border-[28px] border-slate-100" /></div><div className="mt-8 space-y-2"><div className="h-3 w-full rounded bg-slate-100" /><div className="h-3 w-4/5 rounded bg-slate-100" /></div></div></div></section>;
 }
 
 export default async function Page() {
