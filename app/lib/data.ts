@@ -487,6 +487,21 @@ export async function fetchDoctorStaffOptions() {
   return sql`SELECT name, email FROM users WHERE role = 'doctor' ORDER BY name LIMIT 200`;
 }
 
+export async function fetchUnreadNotifications(email: string, userType: string) {
+  try {
+    return await sql`
+      SELECT id, type, message, created_at
+      FROM notifications
+      WHERE user_email = ${email} AND user_type = ${userType} AND read = FALSE
+      ORDER BY created_at DESC
+      LIMIT 10
+    `;
+  } catch (error) {
+    console.error('Notifications unavailable:', error);
+    return [];
+  }
+}
+
 export async function fetchDoctorCatalogOptions() {
   return sql`SELECT id, name, specialty FROM doctors WHERE active = TRUE ORDER BY name LIMIT 200`;
 }

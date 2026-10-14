@@ -5,21 +5,11 @@ import AppointmentStatusChart from '@/app/ui/dashboard/appointment-status-chart'
 import { fetchAdminDashboardData, fetchAdminOperationsReport } from '@/app/lib/data';
 import { formatCurrency } from '@/app/lib/utils';
 import { withTimeout } from '@/app/lib/with-timeout';
-import { dashboardDemoOperations, dashboardDemoReport, type AdminReport } from '@/app/lib/dashboard-demo-data';
+import type { AdminReport } from '@/app/lib/dashboard-demo-data';
 
 // Supabase/Postgres serverless connections can take a few seconds to wake up.
 // Keep the fallback, but do not treat a normal cold connection as a database outage.
 const DATABASE_WAIT_MS = 8000;
-
-function DemoDataNotice() {
-  return (
-    <div role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-      <p className="font-semibold">Showing backup demo data because the live database did not respond in 8 seconds.</p>
-      <p className="mt-1">These figures are fictional and are not clinic records. Check the database connection and refresh before presenting live results.</p>
-      <Link href="/dashboard" className="mt-2 inline-flex min-h-10 items-center font-semibold underline underline-offset-2">Retry live data</Link>
-    </div>
-  );
-}
 
 export function OperationsSummarySkeleton() {
   return <section aria-label="Loading clinic operations" className="grid animate-pulse gap-3 min-[520px]:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-32 rounded-2xl bg-slate-100" />)}</section>;
@@ -28,13 +18,11 @@ export function OperationsSummarySkeleton() {
 export async function OperationsSummary() {
   type Operations = Awaited<ReturnType<typeof fetchAdminDashboardData>>;
   let operations: Operations;
-  let usingDemoData = false;
   try {
     operations = await withTimeout(fetchAdminDashboardData(), DATABASE_WAIT_MS, 'Clinic operations');
   } catch (error) {
     console.error('Admin overview data unavailable:', error);
-    operations = dashboardDemoOperations;
-    usingDemoData = true;
+    operations = { appointments: 0, checkedIn: 0, waiting: 0, openTasks: 0, pendingInvoices: 0, pendingInvoiceCents: 0, staff: 0, doctors: 0, nurses: 0 };
   }
 
   const metrics = [
@@ -53,7 +41,6 @@ export async function OperationsSummary() {
   ];
 
   return <>
-    {usingDemoData && <DemoDataNotice />}
     <section aria-label="Today's operations" className="grid gap-3 min-[520px]:grid-cols-2 xl:grid-cols-4">
       {metrics.map((item) => <article key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><p className="text-sm font-medium text-slate-600">{item.label}</p><p className="mt-2 text-3xl font-bold text-slate-950">{item.value}</p><p className="mt-1 text-xs text-slate-500">{item.detail}</p></article>)}
     </section>
@@ -68,18 +55,15 @@ export async function OperationsSummary() {
 export async function AdminInsights() {
   type Report = AdminReport;
   let report: Report;
-  let usingDemoData = false;
   try {
     report = await withTimeout(fetchAdminOperationsReport(), DATABASE_WAIT_MS, 'Dashboard insights');
   } catch (error) {
     console.error('Admin report data unavailable:', error);
-    report = dashboardDemoReport;
-    usingDemoData = true;
+    report = { payments: [], upcoming: 0, recentActivity: [], appointmentStatuses: [] };
   }
 
   return <>
-    {usingDemoData && <DemoDataNotice />}
-    <section className="space-y-3"><div><h2 className="text-lg font-semibold text-slate-900">Dashboard insights</h2><p className="text-sm text-slate-500">Billing trends and today's appointment flow.</p></div><div className="grid gap-6 xl:grid-cols-2"><RevenueChart /><AppointmentStatusChart data={report.appointmentStatuses} upcomingCount={report.upcoming} isDemoData={usingDemoData} /></div><div className="grid gap-6 xl:grid-cols-2"><LatestInvoices /></div></section>
+    <section className="space-y-3"><div><h2 className="text-lg font-semibold text-slate-900">Dashboard insights</h2><p className="text-sm text-slate-500">Billing trends and today&apos;s appointment flow.</p></div><div className="grid gap-6 xl:grid-cols-2"><RevenueChart /><AppointmentStatusChart data={report.appointmentStatuses} upcomingCount={report.upcoming} /></div><div className="grid gap-6 xl:grid-cols-2"><LatestInvoices /></div></section>
     <section className="space-y-3"><div><h2 className="text-lg font-semibold text-slate-900">Clinic operations report</h2><p className="text-sm text-slate-500">Appointment coverage and invoice totals based on current database records.</p></div><div className="grid gap-3 lg:grid-cols-2">
       <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><h3 className="font-semibold text-slate-900">Invoice status totals</h3><div className="mt-3 space-y-2">{report.payments.length ? report.payments.map((item) => <div key={item.status} className="flex items-center justify-between gap-3 text-sm"><span className="capitalize text-slate-600">{item.status} · {item.count}</span><span className="font-semibold text-slate-900">{formatCurrency(Number(item.cents))}</span></div>) : <p className="text-sm text-slate-500">No invoice records yet.</p>}</div><Link href="/dashboard/invoices" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-teal-800">Manage invoices →</Link></article>
       <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><h3 className="font-semibold text-slate-900">Recent staff activity</h3><div className="mt-3 space-y-3">{report.recentActivity.length ? report.recentActivity.map((item) => <div key={`${item.action}-${item.created_at}`} className="border-b border-slate-100 pb-2 last:border-0"><p className="break-words text-sm font-medium text-slate-800">{String(item.action).replaceAll('_', ' ')}</p><p className="break-all text-xs text-slate-500">{item.actor_email} · {String(item.created_at)}</p></div>) : <p className="text-sm text-slate-500">No staff activity has been recorded.</p>}</div></article>

@@ -2,6 +2,7 @@ import SideNav from '@/app/ui/dashboard/sidenav';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import TopBar from '@/app/ui/dashboard/top-bar';
+import { fetchUnreadNotifications } from '@/app/lib/data';
 
 export default async function Layout({
   children,
@@ -10,6 +11,7 @@ export default async function Layout({
 }) {
   const session = await auth();
   if (!session?.user) redirect('/');
+  const notifications = await fetchUnreadNotifications(session.user.email, session.user.role);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 md:h-screen md:flex-row md:overflow-hidden">
@@ -20,7 +22,7 @@ export default async function Layout({
     />
     <div className="min-w-0 grow overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-10">
       <div className="mx-auto w-full max-w-[1440px]">
-        <TopBar name={session.user.name} role={session.user.role} />
+        <TopBar name={session.user.name} role={session.user.role} notifications={notifications.map((item) => ({ id: String(item.id), type: String(item.type), message: String(item.message), createdAt: String(item.created_at) }))} />
         {children}
       </div>
     </div>

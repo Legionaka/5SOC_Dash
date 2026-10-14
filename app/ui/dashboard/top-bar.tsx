@@ -1,8 +1,9 @@
 'use client';
 
-import { BellIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { usePathname } from 'next/navigation';
 import type { UserRole } from '@/app/lib/definitions';
+import NotificationBell from './notification-bell';
 
 const labels: Record<string, string> = {
   dashboard: 'Overview',
@@ -42,7 +43,9 @@ const roleLabels: Record<UserRole, string> = {
   pharmacist: 'Pharmacist',
 };
 
-export default function TopBar({ name, role }: { name: string; role: UserRole }) {
+type Notification = { id: string; type: string; message: string; createdAt: string };
+
+export default function TopBar({ name, role, notifications }: { name: string; role: UserRole; notifications: Notification[] }) {
   const pathname = usePathname();
   const crumbs = pathname.split('/').filter(Boolean).map((part) => labels[part] ?? part.replaceAll('-', ' '));
 
@@ -55,10 +58,7 @@ export default function TopBar({ name, role }: { name: string; role: UserRole })
       <p className="truncate text-sm text-slate-500">{roleLabels[role]} workspace</p>
     </div>
     <div className="flex shrink-0 items-center gap-2">
-      <button type="button" aria-label="Notifications" className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-teal-300 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
-        <BellIcon className="h-5 w-5" />
-        <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" aria-hidden="true" />
-      </button>
+      <NotificationBell notifications={notifications} />
       <div className="hidden max-w-40 text-right sm:block">
         <p className="truncate text-sm font-semibold text-slate-800">{name}</p>
         <p className="text-xs text-slate-500">Signed in</p>

@@ -322,13 +322,21 @@ export async function bookPatientAppointment(input: BookingInput) {
         )
       `;
 
-      return { success: true, message: 'Appointment request saved.' };
+      return { success: true, message: 'Appointment request saved.', doctorName: doctorRecord.name };
     });
 
     if (result.success) {
       await recordPatientAudit(email, 'appointment.created', 'appointment', undefined, { appointmentDate, appointmentTime, doctor });
       await notifyPatient(email, 'appointment_created', `Your appointment request for ${appointmentDate} at ${appointmentTime} was saved.`);
+      await sql`
+        INSERT INTO notifications (user_email, user_type, type, message)
+        SELECT u.email, u.role, 'appointment_created', ${`New appointment request for ${appointmentDate} at ${appointmentTime} with ${result.doctorName}.`}
+        FROM users u
+        WHERE u.active = TRUE
+          AND (u.role = 'admin' OR (u.role = 'doctor' AND u.name = ${result.doctorName}))
+      `;
       revalidatePath('/dashboard/user');
+      revalidatePath('/dashboard');
     }
 
     return result;
