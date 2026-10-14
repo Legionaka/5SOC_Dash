@@ -1,0 +1,46 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createPatient, deletePatient, updatePatient } from '@/app/lib/admin-actions';
+import type { AdminPatient } from '@/app/lib/data';
+
+type Patient = AdminPatient;
+type FormValues = { name: string; email: string; dateOfBirth: string; phone: string; nationalId: string; pharmacyPreference: string; emergencyContact: string; preferredContactMethod: 'email' | 'phone'; temporaryPassword?: string };
+const emptyForm: FormValues = { name: '', email: '', dateOfBirth: '', phone: '', nationalId: '', pharmacyPreference: '', emergencyContact: '', preferredContactMethod: 'email', temporaryPassword: '' };
+const fieldClass = 'mt-1 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100';
+
+function PatientFields({ value, onChange, password }: { value: FormValues; onChange: (value: FormValues) => void; password?: boolean }) {
+  const set = (key: keyof FormValues, next: string) => onChange({ ...value, [key]: next });
+  return <div className="grid gap-3 sm:grid-cols-2">
+    <label className="text-sm font-medium text-slate-700">Full name<input required minLength={2} maxLength={255} value={value.name} onChange={e => set('name', e.target.value)} className={fieldClass} /></label>
+    <label className="text-sm font-medium text-slate-700">Email<input required type="email" maxLength={320} value={value.email} onChange={e => set('email', e.target.value)} className={fieldClass} /></label>
+    <label className="text-sm font-medium text-slate-700">Date of birth<input type="date" value={value.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} className={fieldClass} /></label>
+    <label className="text-sm font-medium text-slate-700">Phone<input maxLength={40} value={value.phone} onChange={e => set('phone', e.target.value)} className={fieldClass} /></label>
+    <label className="text-sm font-medium text-slate-700">National ID<input maxLength={80} value={value.nationalId} onChange={e => set('nationalId', e.target.value)} className={fieldClass} /></label>
+    <label className="text-sm font-medium text-slate-700">Pharmacy preference<input maxLength={120} value={value.pharmacyPreference} onChange={e => set('pharmacyPreference', e.target.value)} className={fieldClass} /></label>
+    <label className="text-sm font-medium text-slate-700">Emergency contact<input maxLength={160} value={value.emergencyContact} onChange={e => set('emergencyContact', e.target.value)} className={fieldClass} /></label>
+    <label className="text-sm font-medium text-slate-700">Preferred contact<select value={value.preferredContactMethod} onChange={e => set('preferredContactMethod', e.target.value)} className={fieldClass}><option value="email">Email</option><option value="phone">Phone</option></select></label>
+    {password && <label className="text-sm font-medium text-slate-700 sm:col-span-2">Temporary password<input required minLength={12} type="password" value={value.temporaryPassword ?? ''} onChange={e => set('temporaryPassword', e.target.value)} className={fieldClass} /><span className="mt-1 block text-xs font-normal text-slate-500">At least 12 characters. The patient must change it at first sign-in.</span></label>}
+  </div>;
+}
+
+function toForm(patient: Patient): FormValues {
+  return { name: patient.name, email: patient.email, dateOfBirth: patient.date_of_birth ? String(patient.date_of_birth).slice(0, 10) : '', phone: patient.phone ?? '', nationalId: patient.national_id ?? '', pharmacyPreference: patient.pharmacy_preference ?? '', emergencyContact: patient.emergency_contact ?? '', preferredContactMethod: patient.preferred_contact_method ?? 'email' };
+}
+
+export default function PatientManagement({ patients, query }: { patients: Patient[]; query: string }) {
+  const router = useRouter();
+  const [form, setForm] = useState(emptyForm); const [editing, setEditing] = useState<Patient | null>(null); const [editForm, setEditForm] = useState<FormValues>(emptyForm); const [message, setMessage] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  async function create(event: React.FormEvent) { event.preventDefault(); setBusy(true); const result = await createPatient({ ...form, temporaryPassword: form.temporaryPassword ?? '' }); setBusy(false); setMessage(result.message); if (result.success) { setForm(emptyForm); router.refresh(); } }
+  async function save(event: React.FormEvent) { event.preventDefault(); if (!editing) return; setBusy(true); const result = await updatePatient({ patientId: editing.id, ...editForm }); setBusy(false); setMessage(result.message); if (result.success) { setEditing(null); router.refresh(); } }
+  async function remove(patient: Patient) { if (!window.confirm(`Delete ${patient.name}'s account? This cannot be undone.`)) return; setBusy(true); const result = await deletePatient(patient.id); setBusy(false); setMessage(result.message); if (result.success) router.refresh(); }
+  return <main className="mx-auto w-full max-w-7xl space-y-8 pb-10">
+    <header><p className="text-sm font-semibold text-teal-700">Administration</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Patients</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Create patient accounts and keep contact details current for the care team.</p></header>
+    <form onSubmit={create} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><div><h2 className="font-semibold text-slate-900">Add a patient</h2><p className="mt-1 text-sm text-slate-500">A temporary password is required for the patient&apos;s first sign-in.</p></div><PatientFields value={form} onChange={setForm} password /><button disabled={busy} className="min-h-11 rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Saving...' : 'Add patient'}</button></form>
+    {message && <p className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700" role="status">{message}</p>}
+    <section className="space-y-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-bold text-slate-900">Patient directory <span className="font-normal text-slate-400">({patients.length})</span></h2></div><form className="flex gap-2"><input name="query" defaultValue={query} placeholder="Search name, email, or number" className="min-h-10 rounded-lg border border-slate-300 px-3 text-sm" /><button className="rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-700">Search</button></form></div>
+      {patients.length ? <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm"><table className="min-w-full text-left text-sm"><thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-4">Patient</th><th className="px-4 py-4">Patient number</th><th className="px-4 py-4">Contact</th><th className="px-4 py-4 text-right">Actions</th></tr></thead><tbody className="divide-y divide-slate-100">{patients.map(patient => <tr key={patient.id}><td className="px-5 py-4"><p className="font-semibold text-slate-900">{patient.name}</p><p className="text-xs text-slate-500">{patient.email}</p></td><td className="px-4 py-4 text-slate-600">{patient.patient_number ?? '—'}</td><td className="px-4 py-4 text-slate-600">{patient.phone ?? 'No phone'}<br /><span className="text-xs">Preferred: {patient.preferred_contact_method ?? 'email'}</span></td><td className="px-4 py-4 text-right"><div className="flex justify-end gap-2"><button type="button" onClick={() => { setEditing(patient); setEditForm(toForm(patient)); }} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Edit</button><button type="button" disabled={busy} onClick={() => void remove(patient)} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700">Delete</button></div></td></tr>)}</tbody></table></div> : <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">No patients match this search.</p>}</section>
+    {editing && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="presentation"><form onSubmit={save} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Patient account</p><h2 className="mt-1 text-lg font-bold text-slate-900">Edit patient</h2></div><button type="button" onClick={() => setEditing(null)} className="text-sm text-slate-500">Close</button></div><div className="mt-5"><PatientFields value={editForm} onChange={setEditForm} /></div><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setEditing(null)} className="rounded-lg px-4 py-2.5 text-sm text-slate-600">Cancel</button><button disabled={busy} className="rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Saving...' : 'Save changes'}</button></div></form></div>}
+  </main>;
+}

@@ -76,6 +76,102 @@ const StaffPasswordResetSchema = z.object({
   reason: z.string().trim().min(5).max(500),
 });
 
+const PatientSchema = z.object({
+  name: z.string().trim().min(2).max(255),
+  email: z.string().trim().email().max(320),
+  temporaryPassword: z.string().min(12).max(128),
+  dateOfBirth: z.string().trim().max(10).optional(),
+  phone: z.string().trim().max(40).optional(),
+  nationalId: z.string().trim().max(80).optional(),
+  pharmacyPreference: z.string().trim().max(120).optional(),
+  emergencyContact: z.string().trim().max(160).optional(),
+  preferredContactMethod: z.enum(['email', 'phone']).default('email'),
+});
+
+const PatientUpdateSchema = PatientSchema.omit({ temporaryPassword: true }).extend({ patientId: z.string().uuid() });
+
+export async function createPatient(input: z.infer<typeof PatientSchema>) {
+  const session = await requireAdmin();
+  const parsed = PatientSchema.safeParse(input);
+  if (!session.user.email || !parsed.success) return { success: false, message: 'Enter valid patient details.' };
+  const normalizedEmail = parsed.data.email.toLowerCase();
+  const supabaseAdmin = createAdminClient();
+  const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: normalizedEmail, password: parsed.data.temporaryPassword, email_confirm: true, user_metadata: { name: parsed.data.name },
+  });
+  if (authError || !authUser.user) {
+    if (authError?.message.toLowerCase().includes('already')) return { success: false, message: 'An account already uses that email address.' };
+    console.error('Supabase patient account creation failed:', authError);
+    return { success: false, message: 'We could not create this patient account.' };
+  }
+  try {
+    const password = await bcrypt.hash(parsed.data.temporaryPassword, 12);
+    const created = await sql.begin(async (transaction) => {
+      const [patient] = await transaction`
+        INSERT INTO users (name, email, password, role, must_change_password, auth_user_id, date_of_birth, phone, national_id, pharmacy_preference, emergency_contact, preferred_contact_method)
+        VALUES (${parsed.data.name}, ${normalizedEmail}, ${password}, 'patient', TRUE, ${authUser.user.id}, ${parsed.data.dateOfBirth || null}, ${parsed.data.phone || null}, ${parsed.data.nationalId || null}, ${parsed.data.pharmacyPreference || null}, ${parsed.data.emergencyContact || null}, ${parsed.data.preferredContactMethod})
+        RETURNING id, email
+      `;
+      await transaction`INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata) VALUES (${session.user.email}, 'admin', 'patient.created', 'user', ${patient.id}, ${transaction.json({ email: patient.email })})`;
+      return patient;
+    });
+    revalidatePath('/dashboard/customers'); revalidatePath('/dashboard');
+    return { success: true, message: `Patient account created for ${created.email}.` };
+  } catch (error) {
+    await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') return { success: false, message: 'An account already uses that email address.' };
+    console.error('Patient account creation failed:', error);
+    return { success: false, message: 'We could not create this patient account.' };
+  }
+}
+
+export async function updatePatient(input: z.infer<typeof PatientUpdateSchema>) {
+  const session = await requireAdmin();
+  const parsed = PatientUpdateSchema.safeParse(input);
+  if (!session.user.email || !parsed.success) return { success: false, message: 'Enter valid patient details.' };
+  const normalizedEmail = parsed.data.email.toLowerCase();
+  try {
+    const [existing] = await sql`SELECT id, email, auth_user_id FROM users WHERE id = ${parsed.data.patientId} AND role = 'patient' LIMIT 1`;
+    if (!existing) return { success: false, message: 'The patient account was not found.' };
+    if (existing.email.toLowerCase() !== normalizedEmail && existing.auth_user_id) {
+      const { error } = await createAdminClient().auth.admin.updateUserById(existing.auth_user_id, { email: normalizedEmail, email_confirm: true });
+      if (error) return { success: false, message: 'We could not update the patient login email.' };
+    }
+    const [updated] = await sql`
+      UPDATE users SET name = ${parsed.data.name}, email = ${normalizedEmail}, date_of_birth = ${parsed.data.dateOfBirth || null}, phone = ${parsed.data.phone || null}, national_id = ${parsed.data.nationalId || null}, pharmacy_preference = ${parsed.data.pharmacyPreference || null}, emergency_contact = ${parsed.data.emergencyContact || null}, preferred_contact_method = ${parsed.data.preferredContactMethod}
+      WHERE id = ${parsed.data.patientId} AND role = 'patient' RETURNING id, email
+    `;
+    await sql`INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata) VALUES (${session.user.email}, 'admin', 'patient.updated', 'user', ${updated.id}, ${sql.json({ email: updated.email })})`;
+    revalidatePath('/dashboard/customers'); revalidatePath('/dashboard/user');
+    return { success: true, message: 'Patient details updated.' };
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') return { success: false, message: 'An account already uses that email address.' };
+    console.error('Patient update failed:', error);
+    return { success: false, message: 'We could not update this patient.' };
+  }
+}
+
+export async function deletePatient(patientId: string) {
+  const session = await requireAdmin();
+  const parsedId = z.string().uuid().safeParse(patientId);
+  if (!session.user.email || !parsedId.success) return { success: false, message: 'The patient account was not found.' };
+  try {
+    const [patient] = await sql`SELECT id, email, auth_user_id FROM users WHERE id = ${parsedId.data} AND role = 'patient' LIMIT 1`;
+    if (!patient) return { success: false, message: 'The patient account was not found.' };
+    await sql`INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, metadata) VALUES (${session.user.email}, 'admin', 'patient.deleted', 'user', ${patient.id}, ${sql.json({ email: patient.email })})`;
+    await sql`DELETE FROM users WHERE id = ${patient.id} AND role = 'patient'`;
+    if (patient.auth_user_id) {
+      const { error } = await createAdminClient().auth.admin.deleteUser(patient.auth_user_id);
+      if (error) console.error('Supabase patient auth cleanup failed:', error);
+    }
+    revalidatePath('/dashboard/customers'); revalidatePath('/dashboard');
+    return { success: true, message: `${patient.email} was deleted.` };
+  } catch (error) {
+    console.error('Patient deletion failed:', error);
+    return { success: false, message: 'This patient could not be deleted. Existing clinical records may depend on the account.' };
+  }
+}
+
 export async function setStaffAccountActive(staffId: string, active: boolean, reason: string) {
   const session = await requireAdmin();
   const parsedId = StaffIdSchema.safeParse(staffId);

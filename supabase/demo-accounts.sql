@@ -9,3 +9,4 @@ BEGIN;
 DELETE FROM auth.users;
 
 COMMIT;
+                                                                                                                                                                                                    

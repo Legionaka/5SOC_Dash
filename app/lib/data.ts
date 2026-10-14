@@ -458,6 +458,31 @@ export async function fetchAdminStaffAccounts() {
   `;
 }
 
+export type AdminPatient = {
+  id: string;
+  name: string;
+  email: string;
+  date_of_birth: string | null;
+  patient_number: string | null;
+  phone: string | null;
+  national_id: string | null;
+  pharmacy_preference: string | null;
+  emergency_contact: string | null;
+  preferred_contact_method: 'email' | 'phone' | null;
+  active: boolean;
+};
+
+export async function fetchAdminPatients(query = '') {
+  const term = query.trim();
+  const search = `%${term}%`;
+  return sql<AdminPatient[]>`
+    SELECT id, name, email, date_of_birth, patient_number, phone, national_id, pharmacy_preference, emergency_contact, preferred_contact_method, active
+    FROM users
+    WHERE role = 'patient' AND (${term === ''} OR name ILIKE ${search} OR email ILIKE ${search} OR patient_number ILIKE ${search})
+    ORDER BY name LIMIT 500
+  `;
+}
+
 export async function fetchDoctorStaffOptions() {
   return sql`SELECT name, email FROM users WHERE role = 'doctor' ORDER BY name LIMIT 200`;
 }
