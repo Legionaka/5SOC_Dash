@@ -522,7 +522,7 @@ export async function fetchAdminOperationsReport() {
 
 export async function fetchNursePatientRequests() {
   return sql`
-    SELECT id, patient_email, COALESCE(u.name, patient_email) AS patient_name,
+    SELECT r.id, r.patient_email, COALESCE(u.name, r.patient_email) AS patient_name,
       request_type, message, created_at
     FROM patient_requests r LEFT JOIN users u ON u.email = r.patient_email
     WHERE r.status = 'Open' AND r.request_type IN ('question', 'appointment_change')
