@@ -7,12 +7,14 @@ import { formatCurrency } from '@/app/lib/utils';
 import { withTimeout } from '@/app/lib/with-timeout';
 import { dashboardDemoOperations, dashboardDemoReport, type AdminReport } from '@/app/lib/dashboard-demo-data';
 
-const DATABASE_WAIT_MS = 2500;
+// Supabase/Postgres serverless connections can take a few seconds to wake up.
+// Keep the fallback, but do not treat a normal cold connection as a database outage.
+const DATABASE_WAIT_MS = 8000;
 
 function DemoDataNotice() {
   return (
     <div role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-      <p className="font-semibold">Showing backup demo data because the live database did not respond in 2.5 seconds.</p>
+      <p className="font-semibold">Showing backup demo data because the live database did not respond in 8 seconds.</p>
       <p className="mt-1">These figures are fictional and are not clinic records. Check the database connection and refresh before presenting live results.</p>
       <Link href="/dashboard" className="mt-2 inline-flex min-h-10 items-center font-semibold underline underline-offset-2">Retry live data</Link>
     </div>
