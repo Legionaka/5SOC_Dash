@@ -29,9 +29,7 @@ export async function updateSession(request: NextRequest) {
   const isProtected = pathname.startsWith('/dashboard') || pathname === '/change-password';
 
   if (!claims && isProtected) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   if (claims && pathname === '/login') {

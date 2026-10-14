@@ -9,7 +9,7 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  if (!session?.user) redirect('/login');
+  if (!session?.user) redirect('/');
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 md:h-screen md:flex-row md:overflow-hidden">

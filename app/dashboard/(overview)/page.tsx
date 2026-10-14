@@ -11,7 +11,7 @@ function InsightsSkeleton() {
 
 export default async function Page() {
   const session = await auth();
-  if (!session?.user) redirect('/login');
+  if (!session?.user) redirect('/');
   if (session.user.mustChangePassword) redirect('/change-password');
   if (session.user.role !== 'admin') redirect(getDashboardHome(session.user.role));
 
