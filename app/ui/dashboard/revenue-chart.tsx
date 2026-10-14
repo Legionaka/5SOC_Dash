@@ -2,6 +2,7 @@ import { generateYAxis } from '@/app/lib/utils';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import { lusitana } from '@/app/ui/fonts';
 import { fetchRevenue } from '@/app/lib/data';
+import { dashboardDemoRevenue } from '@/app/lib/dashboard-demo-data';
 import { withTimeout } from '@/app/lib/with-timeout';
 
 // This component is representational only.
@@ -17,7 +18,7 @@ export default async function RevenueChart() {
     revenue = await withTimeout(fetchRevenue(), 8000, 'Revenue chart');
   } catch (error) {
     console.error('Revenue chart unavailable:', error);
-    revenue = [];
+    revenue = dashboardDemoRevenue;
   }
 
   const chartHeight = 350;

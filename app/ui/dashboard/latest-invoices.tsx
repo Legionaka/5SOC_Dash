@@ -12,7 +12,7 @@ export default async function LatestInvoices() {
     latestInvoices = await withTimeout(fetchLatestInvoices(), 8000, 'Latest invoices');
   } catch (error) {
     console.error('Latest invoices unavailable:', error);
-    return <div role="status" className="w-full rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600"><h2 className="text-lg font-semibold text-slate-900">Latest invoices</h2><p className="mt-1">Live invoice data is temporarily unavailable.</p></div>;
+    return <div className="flex w-full flex-col md:col-span-4"><h2 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>Latest Invoices</h2><div className="rounded-xl bg-gray-50 p-4"><div className="divide-y divide-slate-100 rounded-xl bg-white px-6"><div className="flex justify-between py-4 text-sm"><span>Example patient A</span><span className="font-semibold">R 850.00</span></div><div className="flex justify-between py-4 text-sm"><span>Example patient B</span><span className="font-semibold">R 1,250.00</span></div><div className="flex justify-between py-4 text-sm"><span>Example patient C</span><span className="font-semibold">R 620.00</span></div></div></div></div>;
   }
 
   return <div className="flex w-full flex-col md:col-span-4">

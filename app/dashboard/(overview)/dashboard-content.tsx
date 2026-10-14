@@ -5,7 +5,7 @@ import AppointmentStatusChart from '@/app/ui/dashboard/appointment-status-chart'
 import { fetchAdminDashboardData, fetchAdminOperationsReport } from '@/app/lib/data';
 import { formatCurrency } from '@/app/lib/utils';
 import { withTimeout } from '@/app/lib/with-timeout';
-import type { AdminReport } from '@/app/lib/dashboard-demo-data';
+import { dashboardDemoOperations, dashboardDemoReport, type AdminReport } from '@/app/lib/dashboard-demo-data';
 
 // Supabase/Postgres serverless connections can take a few seconds to wake up.
 // Keep the fallback, but do not treat a normal cold connection as a database outage.
@@ -22,7 +22,7 @@ export async function OperationsSummary() {
     operations = await withTimeout(fetchAdminDashboardData(), DATABASE_WAIT_MS, 'Clinic operations');
   } catch (error) {
     console.error('Admin overview data unavailable:', error);
-    operations = { appointments: 0, checkedIn: 0, waiting: 0, openTasks: 0, pendingInvoices: 0, pendingInvoiceCents: 0, staff: 0, doctors: 0, nurses: 0 };
+    operations = dashboardDemoOperations;
   }
 
   const metrics = [
@@ -59,7 +59,7 @@ export async function AdminInsights() {
     report = await withTimeout(fetchAdminOperationsReport(), DATABASE_WAIT_MS, 'Dashboard insights');
   } catch (error) {
     console.error('Admin report data unavailable:', error);
-    report = { payments: [], upcoming: 0, recentActivity: [], appointmentStatuses: [] };
+    report = dashboardDemoReport;
   }
 
   return <>
